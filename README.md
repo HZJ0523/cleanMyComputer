@@ -1,3 +1,4 @@
+【纯vibe coding】
 # CleanMyComputer
 
 一个功能完整的 Windows 电脑垃圾清理工具。
