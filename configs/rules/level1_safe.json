@@ -1,0 +1,42 @@
+[
+  {
+    "id": "temp_files",
+    "name": "临时文件",
+    "category": "system",
+    "level": 1,
+    "description": "清理系统临时文件夹中的文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%TEMP%",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 10,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "recycle_bin",
+    "name": "回收站",
+    "category": "system",
+    "level": 1,
+    "description": "清空回收站",
+    "targets": [
+      {
+        "type": "command",
+        "path": "Clear-RecycleBin",
+        "pattern": "",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  }
+]
