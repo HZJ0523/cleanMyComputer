@@ -57,6 +57,8 @@ func (a *App) Run() {
 
 func (a *App) selectTab(index int) {
 	if a.tabs != nil {
-		a.tabs.SelectIndex(index)
+		fyne.Do(func() {
+			a.tabs.SelectIndex(index)
+		})
 	}
 }

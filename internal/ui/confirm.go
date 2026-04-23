@@ -102,7 +102,9 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 	go func() {
 		result, err := executor.Execute(context.Background(), task)
 		if err != nil {
-			dialog.ShowError(err, a.window)
+			fyne.Do(func() {
+				dialog.ShowError(err, a.window)
+			})
 			return
 		}
 
@@ -124,10 +126,10 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 
 		msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %d 字节\n耗时: %v",
 			cleanResult.Cleaned, cleanResult.Failed, cleanResult.FreedSize, duration)
-		summaryLabel.SetText("清理完成")
-		dialog.ShowInformation("清理完成", msg, a.window)
-
-		// Clear scan items
-		a.state.ScanItems = nil
+		fyne.Do(func() {
+			summaryLabel.SetText("清理完成")
+			dialog.ShowInformation("清理完成", msg, a.window)
+			a.state.ScanItems = nil
+		})
 	}()
 }

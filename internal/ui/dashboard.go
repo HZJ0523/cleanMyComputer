@@ -36,15 +36,19 @@ func (a *App) newDashboard() fyne.CanvasObject {
 		go func() {
 			err := a.state.RunScan(1)
 			if err != nil {
-				dialog.ShowError(err, a.window)
+				fyne.Do(func() {
+					dialog.ShowError(err, a.window)
+				})
 				return
 			}
 			count := len(a.state.ScanItems)
-			statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
-			progressBar.Hide()
-			dialog.ShowInformation("扫描完成",
-				fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
-			a.selectTab(1)
+			fyne.Do(func() {
+				statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
+				progressBar.Hide()
+				dialog.ShowInformation("扫描完成",
+					fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
+				a.tabs.SelectIndex(1)
+			})
 		}()
 	})
 
@@ -54,15 +58,19 @@ func (a *App) newDashboard() fyne.CanvasObject {
 		go func() {
 			err := a.state.RunScan(3)
 			if err != nil {
-				dialog.ShowError(err, a.window)
+				fyne.Do(func() {
+					dialog.ShowError(err, a.window)
+				})
 				return
 			}
 			count := len(a.state.ScanItems)
-			statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
-			progressBar.Hide()
-			dialog.ShowInformation("扫描完成",
-				fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
-			a.selectTab(1)
+			fyne.Do(func() {
+				statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
+				progressBar.Hide()
+				dialog.ShowInformation("扫描完成",
+					fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
+				a.tabs.SelectIndex(1)
+			})
 		}()
 	})
 
