@@ -13,9 +13,16 @@ type Loader struct {
 }
 
 func NewLoader() *Loader {
-	return &Loader{
-		rulesDir: "configs/rules",
+	exe, err := os.Executable()
+	if err != nil {
+		return &Loader{rulesDir: "configs/rules"}
 	}
+	rulesDir := filepath.Join(filepath.Dir(exe), "configs", "rules")
+	// Fall back to relative path if the exe-relative dir doesn't exist
+	if _, err := os.Stat(rulesDir); err != nil {
+		rulesDir = "configs/rules"
+	}
+	return &Loader{rulesDir: rulesDir}
 }
 
 func (l *Loader) LoadFromFile(path string) ([]*models.CleanRule, error) {

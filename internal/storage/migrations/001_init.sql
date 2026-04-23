@@ -46,5 +46,5 @@ CREATE TABLE IF NOT EXISTS rule_status (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_clean_details_history ON clean_details(history_id);
-CREATE INDEX idx_clean_details_rule ON clean_details(rule_id);
+CREATE INDEX IF NOT EXISTS idx_clean_details_history ON clean_details(history_id);
+CREATE INDEX IF NOT EXISTS idx_clean_details_rule ON clean_details(rule_id);

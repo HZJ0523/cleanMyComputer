@@ -13,4 +13,7 @@ CGO_ENABLED=1 go build -ldflags "-s -w -X main.version=$VERSION" \
   -o $BUILD_DIR/${OUTPUT_NAME}.exe \
   ./cmd/cleaner
 
+# Copy configs alongside the executable
+cp -r configs $BUILD_DIR/
+
 echo "Build complete: $BUILD_DIR/${OUTPUT_NAME}.exe"
