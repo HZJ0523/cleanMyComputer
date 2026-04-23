@@ -6,7 +6,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-func NewSettingsView() fyne.CanvasObject {
+func (a *App) newSettingsView() fyne.CanvasObject {
 	autoClean := widget.NewCheck("启用自动清理", func(bool) {})
 	retentionEntry := widget.NewEntry()
 	retentionEntry.SetPlaceHolder("24")

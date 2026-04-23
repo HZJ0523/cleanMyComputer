@@ -6,7 +6,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-func NewHistoryView() fyne.CanvasObject {
+func (a *App) newHistoryView() fyne.CanvasObject {
 	historyList := widget.NewList(
 		func() int { return 0 },
 		func() fyne.CanvasObject { return widget.NewLabel("") },

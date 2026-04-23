@@ -9,6 +9,8 @@ import (
 type App struct {
 	fyneApp fyne.App
 	window  fyne.Window
+	state   *AppState
+	tabs    *container.AppTabs
 }
 
 func NewApp() *App {
@@ -16,17 +18,29 @@ func NewApp() *App {
 	w := a.NewWindow("CleanMyComputer")
 	w.Resize(fyne.NewSize(1024, 768))
 
-	return &App{fyneApp: a, window: w}
+	return &App{fyneApp: a, window: w, state: NewAppState()}
 }
 
 func (a *App) Run() {
-	tabs := container.NewAppTabs(
-		container.NewTabItem("首页", NewDashboard()),
-		container.NewTabItem("扫描结果", NewScannerView()),
-		container.NewTabItem("清理确认", NewConfirmView()),
-		container.NewTabItem("历史记录", NewHistoryView()),
-		container.NewTabItem("设置", NewSettingsView()),
+	dashboard := a.newDashboard()
+	scannerView := a.newScannerView()
+	confirmView := a.newConfirmView()
+	historyView := a.newHistoryView()
+	settingsView := a.newSettingsView()
+
+	a.tabs = container.NewAppTabs(
+		container.NewTabItem("首页", dashboard),
+		container.NewTabItem("扫描结果", scannerView),
+		container.NewTabItem("清理确认", confirmView),
+		container.NewTabItem("历史记录", historyView),
+		container.NewTabItem("设置", settingsView),
 	)
-	a.window.SetContent(tabs)
+	a.window.SetContent(a.tabs)
 	a.window.ShowAndRun()
+}
+
+func (a *App) selectTab(index int) {
+	if a.tabs != nil {
+		a.tabs.SelectIndex(index)
+	}
 }
