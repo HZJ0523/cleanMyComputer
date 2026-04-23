@@ -1,0 +1,198 @@
+[
+  {
+    "id": "windows_old",
+    "name": "Windows.old 文件夹",
+    "category": "system",
+    "level": 2,
+    "description": "清理系统升级后遗留的旧版本文件夹",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows.old",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 40,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "font_cache",
+    "name": "字体缓存",
+    "category": "system",
+    "level": 2,
+    "description": "清理 Windows 字体缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache",
+        "pattern": "*.dat",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": ["Fntcache.dat"]
+      }
+    ],
+    "risk_score": 30,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "windows_store_cache",
+    "name": "Microsoft Store 缓存",
+    "category": "app",
+    "level": 2,
+    "description": "清理 Microsoft Store 缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Packages",
+        "pattern": "*\\LocalCache",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 30,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "office_cache",
+    "name": "Office 缓存",
+    "category": "app",
+    "level": 2,
+    "description": "清理 Microsoft Office 临时和缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Office",
+        "pattern": "*.tmp",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%TEMP%",
+        "pattern": "~*.tmp",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 25,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "dev_cache_npm",
+    "name": "npm 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 npm 包管理器缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%APPDATA%\\npm-cache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "dev_cache_pip",
+    "name": "pip 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 pip 包管理器缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\pip\\Cache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "downloads_old",
+    "name": "下载文件夹旧文件",
+    "category": "user",
+    "level": 2,
+    "description": "扫描下载文件夹中超过30天的文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\Downloads",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": ["*.crdownload", "*.part"]
+      }
+    ],
+    "risk_score": 45,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "game_cache_steam",
+    "name": "Steam 缓存",
+    "category": "app",
+    "level": 2,
+    "description": "清理 Steam 下载缓存和临时文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\downloading",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "C:\\Program Files (x86)\\Steam\\steamapps\\temp",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 30,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "installer_cache",
+    "name": "Windows Installer 缓存",
+    "category": "system",
+    "level": 2,
+    "description": "清理 Windows Installer 部分缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Installer\\$PatchCache$",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 50,
+    "requires_admin": true,
+    "enabled": false
+  }
+]

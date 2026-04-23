@@ -4,15 +4,23 @@
     "name": "临时文件",
     "category": "system",
     "level": 1,
-    "description": "清理系统临时文件夹中的文件",
+    "description": "清理用户临时文件夹中的文件",
     "targets": [
       {
         "type": "folder",
         "path": "%TEMP%",
         "pattern": "*",
         "recursive": true,
+        "max_depth": 5,
+        "exclude_list": ["*.lock", "*.tmp.lock"]
+      },
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Temp",
+        "pattern": "*",
+        "recursive": true,
         "max_depth": 3,
-        "exclude_list": []
+        "exclude_list": ["*.lock"]
       }
     ],
     "risk_score": 10,
@@ -36,6 +44,130 @@
       }
     ],
     "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "thumbnail_cache",
+    "name": "缩略图缓存",
+    "category": "system",
+    "level": 1,
+    "description": "清理 Windows 缩略图缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer",
+        "pattern": "thumbcache_*.db",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "windows_update_cache",
+    "name": "Windows 更新缓存",
+    "category": "system",
+    "level": 1,
+    "description": "清理 Windows Update 下载的临时文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\SoftwareDistribution\\Download",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 15,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "error_reports",
+    "name": "错误报告文件",
+    "category": "system",
+    "level": 1,
+    "description": "清理 Windows 错误报告文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\ProgramData\\Microsoft\\Windows\\WER",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 10,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "memory_dumps",
+    "name": "内存转储文件",
+    "category": "system",
+    "level": 1,
+    "description": "清理系统崩溃生成的内存转储文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows",
+        "pattern": "*.dmp",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Minidump",
+        "pattern": "*.dmp",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 10,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "browser_cache",
+    "name": "浏览器缓存",
+    "category": "browser",
+    "level": 1,
+    "description": "清理浏览器缓存文件（不包含密码和Cookie）",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Cache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\Default\\Cache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Mozilla\\Firefox\\Profiles",
+        "pattern": "cache2",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 15,
     "requires_admin": false,
     "enabled": true
   }

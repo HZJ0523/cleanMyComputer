@@ -1,0 +1,154 @@
+[
+  {
+    "id": "system_logs",
+    "name": "系统日志文件",
+    "category": "system",
+    "level": 3,
+    "description": "清理 Windows 系统日志文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Logs",
+        "pattern": "*.log",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\System32\\winevt\\Logs",
+        "pattern": "*.evtx",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 70,
+    "requires_admin": true,
+    "enabled": false
+  },
+  {
+    "id": "old_drivers",
+    "name": "旧驱动程序",
+    "category": "system",
+    "level": 3,
+    "description": "清理旧的驱动程序备份",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\System32\\DriverStore\\FileRepository",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": ["*.inf", "*.cat", "*.sys"]
+      }
+    ],
+    "risk_score": 75,
+    "requires_admin": true,
+    "enabled": false
+  },
+  {
+    "id": "hibernation_file",
+    "name": "休眠文件",
+    "category": "system",
+    "level": 3,
+    "description": "清理休眠文件 hiberfil.sys（如果不使用休眠功能）",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\",
+        "pattern": "hiberfil.sys",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 80,
+    "requires_admin": true,
+    "enabled": false
+  },
+  {
+    "id": "dev_node_modules",
+    "name": "node_modules 目录",
+    "category": "dev",
+    "level": 3,
+    "description": "扫描项目中的 node_modules 目录",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\projects",
+        "pattern": "node_modules",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\Desktop",
+        "pattern": "node_modules",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\Documents",
+        "pattern": "node_modules",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 65,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "dev_build_outputs",
+    "name": "构建输出目录",
+    "category": "dev",
+    "level": 3,
+    "description": "扫描项目中的 build/dist 输出目录",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\projects",
+        "pattern": "build",
+        "recursive": true,
+        "max_depth": 4,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\projects",
+        "pattern": "dist",
+        "recursive": true,
+        "max_depth": 4,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 70,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "docker_cleanup",
+    "name": "Docker 未使用资源",
+    "category": "dev",
+    "level": 3,
+    "description": "清理 Docker 未使用的镜像和容器",
+    "targets": [
+      {
+        "type": "command",
+        "path": "docker system prune -f",
+        "pattern": "",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 75,
+    "requires_admin": false,
+    "enabled": false
+  }
+]
