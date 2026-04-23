@@ -49,25 +49,23 @@ func (s *AppState) RunScan(level int) error {
 	}
 	s.Rules = s.Engine.GetEnabledRules(level)
 
-	// Collect all targets from all rules
-	var allTargets []models.Target
+	// Scan each rule separately to track RuleID
+	var allItems []*models.ScanItem
 	for _, r := range s.Rules {
-		allTargets = append(allTargets, r.Targets...)
-	}
-
-	// Scan
-	items, err := s.Scanner.ScanTargets(ctx, allTargets)
-	if err != nil {
-		return err
+		items, err := s.Scanner.ScanRule(ctx, r)
+		if err != nil {
+			continue
+		}
+		allItems = append(allItems, items...)
 	}
 
 	// Calculate risk scores
-	for _, item := range items {
+	for _, item := range allItems {
 		item.RiskScore = s.Analyzer.CalculateRisk(item)
 	}
 
 	s.mu.Lock()
-	s.ScanItems = items
+	s.ScanItems = allItems
 	s.IsScanning = false
 	s.mu.Unlock()
 
