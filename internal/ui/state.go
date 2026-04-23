@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/hzj0523/cleanMyComputer/internal/core/rule"
 	"github.com/hzj0523/cleanMyComputer/internal/core/scanner"
 	"github.com/hzj0523/cleanMyComputer/internal/models"
+	"github.com/hzj0523/cleanMyComputer/internal/storage"
 )
 
 // CleanResult 记录一次清理的结果，用于回调通知
@@ -22,29 +24,40 @@ type CleanResult struct {
 type AppState struct {
 	mu sync.Mutex
 
-	// Core components
-	Engine   *rule.Engine
-	Scanner  *scanner.Scanner
-	Analyzer *analyzer.RiskAnalyzer
+	Engine          *rule.Engine
+	ParallelScanner *scanner.ParallelScanner
+	Analyzer        *analyzer.RiskAnalyzer
+	DB              *storage.DB
+	History         *storage.History
 
-	// State
 	ScanItems  []*models.ScanItem
 	Rules      []*models.CleanRule
 	IsScanning bool
 
-	// OnCleanComplete 在清理完成时被调用
+	OnScanProgress  func(current, total int)
 	OnCleanComplete func(result CleanResult)
 }
 
 func NewAppState() *AppState {
 	loader := rule.NewLoader()
 	engine := rule.NewEngine(loader)
+	ps := scanner.NewParallelScanner(4)
 
 	return &AppState{
-		Engine:   engine,
-		Scanner:  scanner.NewScanner(4),
-		Analyzer: analyzer.NewRiskAnalyzer(),
+		Engine:          engine,
+		ParallelScanner: ps,
+		Analyzer:        analyzer.NewRiskAnalyzer(),
 	}
+}
+
+func (s *AppState) InitDB(path string) error {
+	db, err := storage.NewDB(path)
+	if err != nil {
+		return err
+	}
+	s.DB = db
+	s.History = storage.NewHistory(db)
+	return nil
 }
 
 func (s *AppState) RunScan(level int) error {
@@ -55,31 +68,60 @@ func (s *AppState) RunScan(level int) error {
 
 	ctx := context.Background()
 
-	// Load rules
 	if err := s.Engine.LoadRules(ctx, level); err != nil {
 		return err
 	}
 	s.Rules = s.Engine.GetEnabledRules(level)
 
-	// Scan each rule separately to track RuleID
-	var allItems []*models.ScanItem
-	for _, r := range s.Rules {
-		items, err := s.Scanner.ScanRule(ctx, r)
-		if err != nil {
-			continue
-		}
-		allItems = append(allItems, items...)
+	// Parallel scan
+	allItems, err := s.ParallelScanner.ScanRules(ctx, s.Rules)
+	if err != nil {
+		return err
 	}
 
-	// Calculate risk scores
+	// Calculate risk and filter forbidden
+	var validItems []*models.ScanItem
 	for _, item := range allItems {
 		item.RiskScore = s.Analyzer.CalculateRisk(item)
+		if !s.Analyzer.IsForbidden(item.Path) {
+			validItems = append(validItems, item)
+		}
 	}
 
 	s.mu.Lock()
-	s.ScanItems = allItems
+	s.ScanItems = validItems
 	s.IsScanning = false
 	s.mu.Unlock()
 
 	return nil
+}
+
+func (s *AppState) SaveCleanHistory(result CleanResult) {
+	if s.History == nil {
+		return
+	}
+	now := time.Now()
+	record := &models.CleanRecord{
+		StartTime:  now.Add(-result.Duration),
+		EndTime:    now,
+		ScanLevel:  1,
+		TotalFiles: result.Cleaned + result.Failed,
+		TotalSize:  result.FreedSize,
+		FreedSize:  result.FreedSize,
+		Status:     "success",
+	}
+	if result.Failed > 0 {
+		record.Status = "partial"
+	}
+	_, err := s.History.Save(record)
+	if err != nil {
+		log.Printf("Failed to save clean history: %v", err)
+	}
+}
+
+func (s *AppState) GetHistory() ([]*models.CleanRecord, error) {
+	if s.History == nil {
+		return nil, nil
+	}
+	return s.History.GetAll()
 }

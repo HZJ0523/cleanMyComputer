@@ -1,6 +1,10 @@
 package ui
 
 import (
+	"log"
+	"os"
+	"path/filepath"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -18,7 +22,19 @@ func NewApp() *App {
 	w := a.NewWindow("CleanMyComputer")
 	w.Resize(fyne.NewSize(1024, 768))
 
-	return &App{fyneApp: a, window: w, state: NewAppState()}
+	state := NewAppState()
+
+	// Init database
+	localAppData := os.Getenv("LOCALAPPDATA")
+	if localAppData == "" {
+		localAppData = os.TempDir()
+	}
+	dbPath := filepath.Join(localAppData, "CleanMyComputer", "cleaner.db")
+	if err := state.InitDB(dbPath); err != nil {
+		log.Printf("Warning: failed to init database: %v", err)
+	}
+
+	return &App{fyneApp: a, window: w, state: state}
 }
 
 func (a *App) Run() {
