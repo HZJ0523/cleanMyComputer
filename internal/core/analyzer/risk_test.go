@@ -38,3 +38,33 @@ func TestRiskAnalyzer_LowRiskFile(t *testing.T) {
 		t.Errorf("Expected low risk score, got %d", score)
 	}
 }
+
+func TestRiskAnalyzer_CaseInsensitive(t *testing.T) {
+	analyzer := NewRiskAnalyzer()
+
+	item := &models.ScanItem{
+		Path:      "c:\\windows\\system32\\test.dll",
+		Size:      1024,
+		ModTime:   time.Now().Add(-30 * 24 * time.Hour),
+		RiskScore: 10,
+	}
+
+	score := analyzer.CalculateRisk(item)
+	if score < 30 {
+		t.Errorf("Expected risk score >= 30 for system path (case insensitive), got %d", score)
+	}
+}
+
+func TestRiskAnalyzer_ForbiddenPath(t *testing.T) {
+	analyzer := NewRiskAnalyzer()
+
+	if !analyzer.IsForbidden("C:\\Windows\\System32\\config\\SAM") {
+		t.Error("Expected forbidden path")
+	}
+	if !analyzer.IsForbidden("c:\\windows\\system32\\config\\SYSTEM") {
+		t.Error("Expected case-insensitive forbidden path")
+	}
+	if analyzer.IsForbidden("C:\\Users\\test\\Downloads") {
+		t.Error("Expected normal path to be allowed")
+	}
+}

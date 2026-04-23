@@ -12,7 +12,7 @@ func TestQuarantineManager_Quarantine(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
 
-	qm := NewQuarantineManager(qDir)
+	qm, _ := NewQuarantineManager(qDir)
 	err := qm.Quarantine(testFile)
 	if err != nil {
 		t.Fatalf("Quarantine() error = %v", err)
@@ -29,7 +29,7 @@ func TestQuarantineManager_Restore(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
 
-	qm := NewQuarantineManager(qDir)
+	qm, _ := NewQuarantineManager(qDir)
 	qm.Quarantine(testFile)
 
 	files, _ := os.ReadDir(qDir)

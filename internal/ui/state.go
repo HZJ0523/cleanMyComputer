@@ -3,12 +3,21 @@ package ui
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/hzj0523/cleanMyComputer/internal/core/analyzer"
 	"github.com/hzj0523/cleanMyComputer/internal/core/rule"
 	"github.com/hzj0523/cleanMyComputer/internal/core/scanner"
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
+
+// CleanResult 记录一次清理的结果，用于回调通知
+type CleanResult struct {
+	Cleaned   int
+	Failed    int
+	FreedSize int64
+	Duration  time.Duration
+}
 
 type AppState struct {
 	mu sync.Mutex
@@ -22,6 +31,9 @@ type AppState struct {
 	ScanItems  []*models.ScanItem
 	Rules      []*models.CleanRule
 	IsScanning bool
+
+	// OnCleanComplete 在清理完成时被调用
+	OnCleanComplete func(result CleanResult)
 }
 
 func NewAppState() *AppState {

@@ -12,7 +12,7 @@ func TestExecutor_Execute(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
 
-	qm := NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
+	qm, _ := NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
 	executor := NewExecutor(qm)
 
 	task := &CleanTask{
@@ -37,7 +37,7 @@ func TestExecutor_Execute_HighRisk(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
 
-	qm := NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
+	qm, _ := NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
 	executor := NewExecutor(qm)
 
 	task := &CleanTask{

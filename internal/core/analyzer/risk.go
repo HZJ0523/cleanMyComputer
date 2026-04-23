@@ -9,8 +9,9 @@ import (
 )
 
 type RiskAnalyzer struct {
-	systemPaths   map[string]bool
-	protectedExts map[string]bool
+	systemPaths    map[string]bool
+	protectedExts  map[string]bool
+	forbiddenPaths []string
 }
 
 func NewRiskAnalyzer() *RiskAnalyzer {
@@ -22,7 +23,25 @@ func NewRiskAnalyzer() *RiskAnalyzer {
 		protectedExts: map[string]bool{
 			".exe": true, ".dll": true, ".sys": true,
 		},
+		forbiddenPaths: []string{
+			"C:\\Windows\\System32\\config",
+			"C:\\Windows\\System32\\drivers\\etc",
+			"C:\\Windows\\Boot",
+			"C:\\Windows\\EFI",
+			"C:\\$Recycle.Bin",
+		},
 	}
+}
+
+// IsForbidden 检查路径是否在禁止清理列表中
+func (r *RiskAnalyzer) IsForbidden(path string) bool {
+	lowerPath := strings.ToLower(path)
+	for _, fp := range r.forbiddenPaths {
+		if strings.HasPrefix(lowerPath, strings.ToLower(fp)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *RiskAnalyzer) CalculateRisk(item *models.ScanItem) int {
@@ -47,8 +66,9 @@ func (r *RiskAnalyzer) CalculateRisk(item *models.ScanItem) int {
 }
 
 func (r *RiskAnalyzer) isSystemPath(path string) bool {
+	lowerPath := strings.ToLower(path)
 	for sysPath := range r.systemPaths {
-		if strings.HasPrefix(path, sysPath) {
+		if strings.HasPrefix(lowerPath, strings.ToLower(sysPath)) {
 			return true
 		}
 	}

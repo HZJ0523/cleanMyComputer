@@ -34,7 +34,7 @@ func TestFullCleanWorkflow(t *testing.T) {
 	}
 
 	// Step 2: Clean
-	qm := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
+	qm, _ := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
 	executor := cleaner.NewExecutor(qm)
 
 	task := &cleaner.CleanTask{
@@ -61,7 +61,7 @@ func TestHighRiskWorkflow(t *testing.T) {
 	ctx := context.Background()
 
 	// Clean with high risk score - should go to quarantine
-	qm := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
+	qm, _ := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
 	executor := cleaner.NewExecutor(qm)
 
 	task := &cleaner.CleanTask{

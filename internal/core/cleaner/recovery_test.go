@@ -11,7 +11,7 @@ func TestRecovery_RestoreFile(t *testing.T) {
 	qDir := filepath.Join(tmpDir, "quarantine")
 	originalPath := filepath.Join(tmpDir, "test.txt")
 
-	qm := NewQuarantineManager(qDir)
+	qm, _ := NewQuarantineManager(qDir)
 	recovery := NewRecovery(qm)
 
 	os.WriteFile(originalPath, []byte("test"), 0644)

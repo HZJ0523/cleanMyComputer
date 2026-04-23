@@ -3,8 +3,10 @@ package ui
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -41,12 +43,29 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 			TotalSize: totalSize,
 		}
 
-		// Setup executor with quarantine
-		tmpDir := filepath.Join(os.TempDir(), "cleanMyComputer_quarantine")
-		qm := cleaner.NewQuarantineManager(tmpDir)
+		// Setup executor with quarantine in LOCALAPPDATA
+		localAppData := os.Getenv("LOCALAPPDATA")
+		if localAppData == "" {
+			localAppData = os.TempDir()
+		}
+		qDir := filepath.Join(localAppData, "CleanMyComputer", "quarantine")
+		qm, err := cleaner.NewQuarantineManager(qDir)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("创建隔离目录失败: %w", err), a.window)
+			return
+		}
+
+		// Set OnQuarantine callback for persistence (currently logs only)
+		qm.OnQuarantine = func(record cleaner.QuarantineRecord) error {
+			log.Printf("[Quarantine] %s -> %s (size=%d, expires=%s)",
+				record.OriginalPath, record.QuarantinePath, record.Size, record.ExpiresAt.Format(time.DateTime))
+			return nil
+		}
+
 		executor := cleaner.NewExecutor(qm)
 
 		summaryLabel.SetText("正在清理...")
+		startTime := time.Now()
 
 		go func() {
 			result, err := executor.Execute(context.Background(), task)
@@ -55,8 +74,21 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 				return
 			}
 
-			msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %d 字节",
-				len(result.Cleaned), len(result.Failed), result.FreedSize)
+			duration := time.Since(startTime)
+			cleanResult := CleanResult{
+				Cleaned:   len(result.Cleaned),
+				Failed:    len(result.Failed),
+				FreedSize: result.FreedSize,
+				Duration:  duration,
+			}
+
+			// Notify caller for history persistence
+			if a.state.OnCleanComplete != nil {
+				a.state.OnCleanComplete(cleanResult)
+			}
+
+			msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %d 字节\n耗时: %v",
+				cleanResult.Cleaned, cleanResult.Failed, cleanResult.FreedSize, duration)
 			summaryLabel.SetText("清理完成")
 			dialog.ShowInformation("清理完成", msg, a.window)
 
