@@ -28,6 +28,7 @@ type Target struct {
 	Recursive   bool     `json:"recursive"`
 	MaxDepth    int      `json:"max_depth"`
 	ExcludeList []string `json:"exclude_list"`
+	DaysOld     int      `json:"days_old"`
 }
 
 // Validate 验证规则有效性

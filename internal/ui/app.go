@@ -24,7 +24,6 @@ func NewApp() *App {
 
 	state := NewAppState()
 
-	// Init database
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" {
 		localAppData = os.TempDir()
@@ -38,15 +37,12 @@ func NewApp() *App {
 }
 
 func (a *App) Run() {
-	defer func() {
-		if a.state.DB != nil {
-			a.state.DB.Close()
-		}
-	}()
+	defer a.state.CloseDB()
 
 	dashboard := a.newDashboard()
 	scannerView := a.newScannerView()
 	confirmView := a.newConfirmView()
+	recoveryView := a.newRecoveryView()
 	historyView := a.newHistoryView()
 	settingsView := a.newSettingsView()
 
@@ -54,6 +50,7 @@ func (a *App) Run() {
 		container.NewTabItem("首页", dashboard),
 		container.NewTabItem("扫描结果", scannerView),
 		container.NewTabItem("清理确认", confirmView),
+		container.NewTabItem("恢复中心", recoveryView),
 		container.NewTabItem("历史记录", historyView),
 		container.NewTabItem("设置", settingsView),
 	)

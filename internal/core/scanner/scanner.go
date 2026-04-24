@@ -5,11 +5,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
 
-// expandPath expands environment variables in both $VAR/${VAR} and Windows %VAR% forms.
 var winEnvRe = regexp.MustCompile(`%([^%]+)%`)
 
 func expandPath(path string) string {
@@ -19,6 +19,13 @@ func expandPath(path string) string {
 		return os.Getenv(name)
 	})
 	return filepath.Clean(expanded)
+}
+
+func isOldEnough(modTime time.Time, daysOld int) bool {
+	if daysOld <= 0 {
+		return true
+	}
+	return time.Since(modTime) >= time.Duration(daysOld)*24*time.Hour
 }
 
 type Scanner struct {
@@ -122,6 +129,10 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 				return nil
 			}
 
+			if !isOldEnough(info.ModTime(), target.DaysOld) {
+				return nil
+			}
+
 			results = append(results, &models.ScanItem{
 				Path:    path,
 				Size:    info.Size(),
@@ -154,6 +165,9 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			if excluded {
 				continue
 			}
+			if !isOldEnough(info.ModTime(), target.DaysOld) {
+				continue
+			}
 			results = append(results, &models.ScanItem{
 				Path:    match,
 				Size:    info.Size(),
@@ -166,7 +180,6 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 	return results, nil
 }
 
-// ScanTargets retains backward compatibility (prefer ScanRule).
 func (s *Scanner) ScanTargets(ctx context.Context, targets []models.Target) ([]*models.ScanItem, error) {
 	var results []*models.ScanItem
 	for _, target := range targets {

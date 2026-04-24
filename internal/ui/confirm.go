@@ -26,7 +26,6 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 			return
 		}
 
-		// Build clean task
 		var files []*cleaner.FileItem
 		var totalSize int64
 		for _, item := range items {
@@ -40,7 +39,6 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 
 		startTime := time.Now()
 
-		// Check for high-risk items
 		var highRiskCount int
 		for _, f := range files {
 			if f.RiskScore > 60 {
@@ -90,6 +88,9 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 	qm.OnQuarantine = func(record cleaner.QuarantineRecord) error {
 		log.Printf("[Quarantine] %s -> %s (size=%d, expires=%s)",
 			record.OriginalPath, record.QuarantinePath, record.Size, record.ExpiresAt.Format(time.DateTime))
+		if err := a.state.SaveQuarantineRecord(record); err != nil {
+			log.Printf("Failed to save quarantine record: %v", err)
+		}
 		return nil
 	}
 
@@ -120,8 +121,10 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 			a.state.OnCleanComplete(cleanResult)
 		}
 
-		msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %s\n耗时: %v",
-			cleanResult.Cleaned, cleanResult.Failed, formatSize(cleanResult.FreedSize), duration)
+		msg := fmt.Sprintf("清理完成！\n删除: %d 个文件 (释放 %s)\n隔离: %d 个文件 (%s)\n失败: %d 个文件\n耗时: %v",
+			len(result.Cleaned)-len(result.Quarantined), formatSize(result.FreedSize),
+			len(result.Quarantined), formatSize(result.QuarantinedSize),
+			len(result.Failed), duration)
 		fyne.Do(func() {
 			summaryLabel.SetText("清理完成")
 			dialog.ShowInformation("清理完成", msg, a.window)

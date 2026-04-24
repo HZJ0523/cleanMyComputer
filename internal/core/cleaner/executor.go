@@ -25,11 +25,13 @@ type FileItem struct {
 }
 
 type CleanResult struct {
-	Cleaned   []string
-	Failed    []string
-	FreedSize int64
-	StartTime time.Time
-	EndTime   time.Time
+	Cleaned      []string
+	Quarantined  []string
+	Failed       []string
+	FreedSize    int64
+	QuarantinedSize int64
+	StartTime    time.Time
+	EndTime      time.Time
 }
 
 func NewExecutor(qm *QuarantineManager) *Executor {
@@ -44,29 +46,54 @@ func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, 
 			return result, ctx.Err()
 		default:
 		}
-		if err := e.cleanFile(file); err != nil {
+		action, err := e.cleanFile(file)
+		if err != nil {
 			result.Failed = append(result.Failed, file.Path)
 			continue
 		}
-		result.Cleaned = append(result.Cleaned, file.Path)
-		result.FreedSize += file.Size
+		switch action {
+		case "deleted":
+			result.Cleaned = append(result.Cleaned, file.Path)
+			result.FreedSize += file.Size
+		case "quarantined":
+			result.Quarantined = append(result.Quarantined, file.Path)
+			result.QuarantinedSize += file.Size
+			result.Cleaned = append(result.Cleaned, file.Path)
+		case "command":
+			result.Cleaned = append(result.Cleaned, file.Path)
+		}
 	}
 	result.EndTime = time.Now()
 	return result, nil
 }
 
-func (e *Executor) cleanFile(file *FileItem) error {
+func (e *Executor) cleanFile(file *FileItem) (string, error) {
 	if e.dryRun {
-		return nil
+		return "deleted", nil
 	}
-	// Command-type targets (recycle bin, docker prune, etc.)
 	if !strings.Contains(file.Path, "\\") && !strings.Contains(file.Path, "/") {
-		return e.executeCommand(file.Path)
+		return "command", e.executeCommand(file.Path)
 	}
 	if file.RiskScore > 60 {
-		return e.quarantine.Quarantine(file.Path)
+		return "quarantined", e.quarantine.Quarantine(file.Path)
 	}
-	return os.Remove(file.Path)
+	return "deleted", e.deleteWithRetry(file.Path)
+}
+
+const maxRetries = 2
+
+func (e *Executor) deleteWithRetry(path string) error {
+	for i := 0; i < maxRetries; i++ {
+		err := os.Remove(path)
+		if err == nil {
+			return nil
+		}
+		if os.IsPermission(err) {
+			return err
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return os.Remove(path)
 }
 
 func (e *Executor) executeCommand(cmd string) error {

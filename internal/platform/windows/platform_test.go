@@ -9,7 +9,6 @@ import (
 func TestWindowsPlatform_ExpandPath(t *testing.T) {
 	p := NewPlatform()
 
-	// 使用 ExpandPath 已知的环境变量列表中的 TEMP
 	tempDir := os.Getenv("TEMP")
 	if tempDir == "" {
 		t.Skip("TEMP env var not set")
@@ -19,16 +18,6 @@ func TestWindowsPlatform_ExpandPath(t *testing.T) {
 	expected := filepath.Join(tempDir, "sub")
 	if result != expected {
 		t.Errorf("ExpandPath() = %s, want %s", result, expected)
-	}
-}
-
-func TestWindowsPlatform_ExpandPath_RealEnv(t *testing.T) {
-	p := NewPlatform()
-
-	result := p.ExpandPath("%TEMP%")
-	orig := "%TEMP%"
-	if result == orig {
-		t.Errorf("Expected %%TEMP%% to be expanded, got %s", result)
 	}
 }
 
@@ -44,8 +33,17 @@ func TestWindowsPlatform_GetCommonPaths(t *testing.T) {
 	}
 }
 
-func TestWindowsPlatform_ClearRecycleBin(t *testing.T) {
-	// 不实际清空回收站，只验证命令可以构建
+func TestWindowsPlatform_GetDiskUsage(t *testing.T) {
 	p := NewPlatform()
-	_ = p.ClearRecycleBin // 验证方法存在
+	home, _ := os.UserHomeDir()
+	usage, err := p.GetDiskUsage(home)
+	if err != nil {
+		t.Fatalf("GetDiskUsage() error = %v", err)
+	}
+	if usage.TotalGB <= 0 {
+		t.Error("Expected positive total disk size")
+	}
+	if usage.FreeGB <= 0 {
+		t.Error("Expected positive free disk space")
+	}
 }

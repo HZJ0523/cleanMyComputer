@@ -140,7 +140,8 @@
         "pattern": "*",
         "recursive": true,
         "max_depth": 2,
-        "exclude_list": ["*.crdownload", "*.part"]
+        "exclude_list": ["*.crdownload", "*.part"],
+      "days_old": 30
       }
     ],
     "risk_score": 45,
