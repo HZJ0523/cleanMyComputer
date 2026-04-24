@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 	"path/filepath"
 	"sync"
 	"time"
@@ -139,7 +141,7 @@ func (o *Orchestrator) RunScan(level int) error {
 	o.mu.Lock()
 	if o.IsScanning {
 		o.mu.Unlock()
-		return fmt.Errorf("扫描正在进行中，请稍候")
+		return fmt.Errorf("%s", i18n.T("dialog.scan_in_progress"))
 	}
 	o.IsScanning = true
 	o.ScanItems = nil

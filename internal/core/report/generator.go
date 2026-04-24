@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hzj0523/cleanMyComputer/internal/models"
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 type Report struct {
@@ -27,27 +28,29 @@ func NewGenerator() *Generator {
 
 func (g *Generator) GenerateText(report *Report) string {
 	var sb strings.Builder
-	sb.WriteString("=== 清理报告 ===\n\n")
-	sb.WriteString(fmt.Sprintf("扫描级别: %d\n", report.ScanLevel))
-	sb.WriteString(fmt.Sprintf("扫描时间: %s - %s\n",
+	sb.WriteString(i18n.T("report.title") + "\n\n")
+	sb.WriteString(fmt.Sprintf(i18n.T("report.scan_level")+"\n", report.ScanLevel))
+	sb.WriteString(fmt.Sprintf(i18n.T("report.scan_time")+"\n",
 		report.StartTime.Format("2006-01-02 15:04:05"),
 		report.EndTime.Format("2006-01-02 15:04:05")))
-	sb.WriteString(fmt.Sprintf("扫描项目数: %d\n", len(report.Items)))
-	sb.WriteString(fmt.Sprintf("释放空间: %s\n", formatBytes(report.FreedSize)))
-	sb.WriteString(fmt.Sprintf("失败数: %d\n\n", report.Failed))
+	sb.WriteString(fmt.Sprintf(i18n.T("report.item_count")+"\n", len(report.Items)))
+	sb.WriteString(fmt.Sprintf(i18n.T("report.freed_space")+"\n", formatBytes(report.FreedSize)))
+	sb.WriteString(fmt.Sprintf(i18n.T("report.failed_count")+"\n\n", report.Failed))
 
-	sb.WriteString("--- 详细列表 ---\n")
+	sb.WriteString(i18n.T("report.detail_header") + "\n")
 	for i, item := range report.Items {
-		risk := "安全"
+		risk := i18n.T("risk.safe")
 		if item.RiskScore > 60 {
-			risk = "高风险"
+			risk = i18n.T("risk.high")
 		} else if item.RiskScore > 30 {
-			risk = "中等风险"
+			risk = i18n.T("risk.moderate")
 		}
-		sb.WriteString(fmt.Sprintf("%d. %s (大小: %s, 风险: %s)\n",
-			i+1, sanitizePath(item.Path), formatBytes(item.Size), risk))
+		sb.WriteString(fmt.Sprintf(i18n.T("report.detail_item")+"\n",
+			i+1, sanitizePath(item.Path),
+			i18n.T("label.size"), formatBytes(item.Size),
+			i18n.T("label.risk"), risk))
 	}
-	sb.WriteString("\n--- 报告结束 ---\n")
+	sb.WriteString("\n" + i18n.T("report.footer") + "\n")
 	return sb.String()
 }
 

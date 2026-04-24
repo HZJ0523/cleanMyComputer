@@ -69,7 +69,7 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 		for _, rec := range records {
 			totalFreed += rec.FreedSize
 			items = append(items, &models.ScanItem{
-				Path:    fmt.Sprintf("清理记录 #%d", rec.ID),
+				Path:    fmt.Sprintf(i18n.T("label.clean_record"), rec.ID),
 				Size:    rec.FreedSize,
 				ModTime: rec.StartTime,
 			})
@@ -84,7 +84,7 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 		}
 
 		home, _ := os.UserHomeDir()
-		exportPath := filepath.Join(home, "Desktop", fmt.Sprintf("清理报告_%s.txt", time.Now().Format("20060102_150405")))
+		exportPath := filepath.Join(home, "Desktop", fmt.Sprintf(i18n.T("report.filename"), time.Now().Format("20060102_150405")))
 		if err := gen.ExportToFile(r, exportPath); err != nil {
 			dialog.ShowError(err, a.window)
 			return
