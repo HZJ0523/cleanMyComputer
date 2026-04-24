@@ -34,10 +34,6 @@ func NewQuarantineManager(baseDir string) (*QuarantineManager, error) {
 	}, nil
 }
 
-func (q *QuarantineManager) SetRetentionHours(hours int) {
-	q.retentionHours = hours
-}
-
 func (q *QuarantineManager) Quarantine(srcPath string) error {
 	fileName := filepath.Base(srcPath)
 	quarantineName := fmt.Sprintf("%d_%d_%s", time.Now().UnixNano(), rand.Intn(10000), fileName)
@@ -70,6 +66,8 @@ func (q *QuarantineManager) Quarantine(srcPath string) error {
 }
 
 func (q *QuarantineManager) Restore(quarantinePath, originalPath string) error {
-	os.MkdirAll(filepath.Dir(originalPath), 0755)
+	if err := os.MkdirAll(filepath.Dir(originalPath), 0755); err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
 	return os.Rename(quarantinePath, originalPath)
 }
