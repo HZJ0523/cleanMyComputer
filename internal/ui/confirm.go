@@ -117,10 +117,6 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 
 		a.state.SaveCleanHistory(cleanResult)
 
-		if a.state.OnCleanComplete != nil {
-			a.state.OnCleanComplete(cleanResult)
-		}
-
 		msg := fmt.Sprintf("清理完成！\n删除: %d 个文件 (释放 %s)\n隔离: %d 个文件 (%s)\n失败: %d 个文件\n耗时: %v",
 			len(result.Cleaned)-len(result.Quarantined), formatSize(result.FreedSize),
 			len(result.Quarantined), formatSize(result.QuarantinedSize),

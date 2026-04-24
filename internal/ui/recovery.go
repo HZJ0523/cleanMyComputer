@@ -10,7 +10,7 @@ import (
 )
 
 func (a *App) newRecoveryView() fyne.CanvasObject {
-	list := widget.NewList(
+	qList := widget.NewList(
 		func() int {
 			items, _ := a.state.GetQuarantinedItems()
 			return len(items)
@@ -57,7 +57,7 @@ func (a *App) newRecoveryView() fyne.CanvasObject {
 							return
 						}
 						dialog.ShowInformation("成功", "文件已恢复", a.window)
-						list.Refresh()
+						qList.Refresh()
 					}, a.window)
 			}
 
@@ -73,19 +73,19 @@ func (a *App) newRecoveryView() fyne.CanvasObject {
 							return
 						}
 						dialog.ShowInformation("成功", "文件已永久删除", a.window)
-						list.Refresh()
+						qList.Refresh()
 					}, a.window)
 			}
 		},
 	)
 
 	refreshBtn := widget.NewButton("刷新", func() {
-		list.Refresh()
+		qList.Refresh()
 	})
 
 	return container.NewBorder(
 		container.NewVBox(widget.NewLabel("恢复中心 - 隔离文件管理"), refreshBtn),
 		nil, nil, nil,
-		list,
+		qList,
 	)
 }

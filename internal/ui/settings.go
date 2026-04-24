@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -51,8 +52,21 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 	if val, err := a.state.GetConfig("quarantine_retention_hours"); err == nil && val != "" {
 		retentionEntry.SetText(val)
 	}
-
 	retentionLabel := widget.NewLabel("隔离区保留时间（小时）")
+
+	// Auto-clean controls
+	autoCleanCheck := widget.NewCheck("启用自动清理", nil)
+	if val, err := a.state.GetConfig("auto_clean_enabled"); err == nil && val == "true" {
+		autoCleanCheck.SetChecked(true)
+	}
+
+	intervalEntry := widget.NewEntry()
+	intervalEntry.SetPlaceHolder("24")
+	if val, err := a.state.GetConfig("auto_clean_interval_hours"); err == nil && val != "" {
+		intervalEntry.SetText(val)
+	}
+	intervalLabel := widget.NewLabel("清理间隔（小时）")
+
 	saveBtn := widget.NewButton("保存设置", func() {
 		if retentionEntry.Text != "" {
 			if err := a.state.SetConfig("quarantine_retention_hours", retentionEntry.Text); err != nil {
@@ -60,6 +74,25 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 				return
 			}
 		}
+
+		autoEnabled := "false"
+		if autoCleanCheck.Checked {
+			autoEnabled = "true"
+		}
+		if err := a.state.SetConfig("auto_clean_enabled", autoEnabled); err != nil {
+			dialog.ShowError(err, a.window)
+			return
+		}
+
+		if intervalEntry.Text != "" {
+			if err := a.state.SetConfig("auto_clean_interval_hours", intervalEntry.Text); err != nil {
+				dialog.ShowError(err, a.window)
+				return
+			}
+		}
+
+		a.applyAutoCleanSettings(autoCleanCheck.Checked, intervalEntry.Text)
+
 		dialog.ShowInformation("提示", "设置已保存", a.window)
 	})
 
@@ -71,6 +104,8 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 		container.NewVBox(
 			widget.NewLabelWithStyle("设置", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			container.NewHBox(retentionLabel, retentionEntry),
+			widget.NewSeparator(),
+			container.NewHBox(autoCleanCheck, intervalLabel, intervalEntry),
 			saveBtn,
 			widget.NewSeparator(),
 			widget.NewLabel("清理规则启用/禁用"),
@@ -79,4 +114,26 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 		nil, nil, nil,
 		ruleList,
 	)
+}
+
+func (a *App) applyAutoCleanSettings(enabled bool, intervalStr string) {
+	if !enabled {
+		if a.scheduler != nil {
+			a.scheduler.Stop()
+		}
+		return
+	}
+
+	hours := 24
+	if intervalStr != "" {
+		if h, err := strconv.Atoi(intervalStr); err == nil && h > 0 {
+			hours = h
+		}
+	}
+
+	if a.scheduler == nil {
+		a.scheduler = newScheduler(a.state.Orchestrator)
+	}
+	a.scheduler.SetInterval(hours)
+	a.scheduler.Start()
 }

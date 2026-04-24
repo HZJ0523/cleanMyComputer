@@ -266,3 +266,13 @@ func (o *Orchestrator) CleanupExpiredQuarantine() error {
 	_, err = o.db.Conn().Exec("DELETE FROM quarantine WHERE expires_at <= datetime('now')")
 	return err
 }
+
+func (o *Orchestrator) FindDuplicateFiles(root string) ([]analyzer.DuplicateGroup, error) {
+	finder := analyzer.NewDuplicateFinder(1024)
+	return finder.FindDuplicates(root)
+}
+
+func (o *Orchestrator) FindLargeFiles(root string, threshold int64) ([]analyzer.LargeFile, error) {
+	finder := analyzer.NewLargeFileFinder(threshold)
+	return finder.FindLargeFiles(root)
+}

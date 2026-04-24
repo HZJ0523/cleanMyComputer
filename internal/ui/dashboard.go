@@ -10,26 +10,26 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/hzj0523/cleanMyComputer/internal/platform/windows"
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 func (a *App) newDashboard() fyne.CanvasObject {
-	title := widget.NewLabelWithStyle("电脑垃圾清理工具", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	title := widget.NewLabelWithStyle(i18n.T("app.title"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 
 	var diskInfo string
 	homedir, _ := os.UserHomeDir()
 	platform := windows.NewPlatform()
 	if usage, err := platform.GetDiskUsage(homedir); err == nil {
-		diskInfo = fmt.Sprintf("系统盘: 已用 %.1f GB / 总计 %.1f GB (可用 %.1f GB)",
-			usage.UsedGB, usage.TotalGB, usage.FreeGB)
+		diskInfo = fmt.Sprintf(i18n.T("label.disk_usage"), usage.UsedGB, usage.TotalGB, usage.FreeGB)
 	}
 
 	diskLabel := widget.NewLabel(diskInfo)
-	statusLabel := widget.NewLabel("选择扫描模式开始清理")
+	statusLabel := widget.NewLabel(i18n.T("label.select_mode"))
 	progressBar := widget.NewProgressBar()
 	progressBar.Hide()
 
-	quickScan := widget.NewButton("快速扫描", func() {
-		statusLabel.SetText("正在快速扫描...")
+	quickScan := widget.NewButton(i18n.T("btn.quick_scan"), func() {
+		statusLabel.SetText(i18n.T("label.scanning"))
 		progressBar.Show()
 		go func() {
 			err := a.state.RunScan(1)
@@ -42,17 +42,17 @@ func (a *App) newDashboard() fyne.CanvasObject {
 			}
 			count := len(a.state.ScanItems)
 			fyne.Do(func() {
-				statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
+				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				progressBar.Hide()
-				dialog.ShowInformation("扫描完成",
-					fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
+				dialog.ShowInformation(i18n.T("label.scan_complete"),
+					fmt.Sprintf("%d items", count), a.window)
 				a.tabs.SelectIndex(1)
 			})
 		}()
 	})
 
-	fullScan := widget.NewButton("完整扫描", func() {
-		statusLabel.SetText("正在完整扫描...")
+	fullScan := widget.NewButton(i18n.T("btn.full_scan"), func() {
+		statusLabel.SetText(i18n.T("label.scanning"))
 		progressBar.Show()
 		go func() {
 			err := a.state.RunScan(3)
@@ -65,10 +65,10 @@ func (a *App) newDashboard() fyne.CanvasObject {
 			}
 			count := len(a.state.ScanItems)
 			fyne.Do(func() {
-				statusLabel.SetText(fmt.Sprintf("扫描完成，发现 %d 个可清理项", count))
+				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				progressBar.Hide()
-				dialog.ShowInformation("扫描完成",
-					fmt.Sprintf("发现 %d 个可清理项，请查看扫描结果", count), a.window)
+				dialog.ShowInformation(i18n.T("label.scan_complete"),
+					fmt.Sprintf("%d items", count), a.window)
 				a.tabs.SelectIndex(1)
 			})
 		}()

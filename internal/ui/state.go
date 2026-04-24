@@ -9,8 +9,7 @@ type CleanResult = app.CleanSummary
 
 type AppState struct {
 	*app.Orchestrator
-	OnScanProgress  func(current, total int)
-	OnCleanComplete func(result CleanResult)
+	OnScanProgress func(current, total int)
 }
 
 func NewAppState() *AppState {

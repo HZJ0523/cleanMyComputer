@@ -11,10 +11,11 @@ import (
 )
 
 type App struct {
-	fyneApp fyne.App
-	window  fyne.Window
-	state   *AppState
-	tabs    *container.AppTabs
+	fyneApp  fyne.App
+	window   fyne.Window
+	state    *AppState
+	tabs     *container.AppTabs
+	scheduler *scheduler
 }
 
 func NewApp() *App {
@@ -38,6 +39,11 @@ func NewApp() *App {
 
 func (a *App) Run() {
 	defer a.state.CloseDB()
+	defer func() {
+		if a.scheduler != nil {
+			a.scheduler.Stop()
+		}
+	}()
 
 	dashboard := a.newDashboard()
 	scannerView := a.newScannerView()
