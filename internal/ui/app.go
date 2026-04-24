@@ -9,13 +9,15 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 type App struct {
-	fyneApp  fyne.App
-	window   fyne.Window
-	state    *AppState
-	tabs     *container.AppTabs
+	fyneApp   fyne.App
+	window    fyne.Window
+	state     *AppState
+	tabs      *container.AppTabs
 	scheduler *scheduler
 }
 
@@ -57,12 +59,12 @@ func (a *App) Run() {
 	settingsView := a.newSettingsView()
 
 	a.tabs = container.NewAppTabs(
-		container.NewTabItem("首页", dashboard),
-		container.NewTabItem("扫描结果", scannerView),
-		container.NewTabItem("清理确认", confirmView),
-		container.NewTabItem("恢复中心", recoveryView),
-		container.NewTabItem("历史记录", historyView),
-		container.NewTabItem("设置", settingsView),
+		container.NewTabItem(i18n.T("tab.dashboard"), dashboard),
+		container.NewTabItem(i18n.T("tab.scan"), scannerView),
+		container.NewTabItem(i18n.T("tab.confirm"), confirmView),
+		container.NewTabItem(i18n.T("tab.recovery"), recoveryView),
+		container.NewTabItem(i18n.T("tab.history"), historyView),
+		container.NewTabItem(i18n.T("tab.settings"), settingsView),
 	)
 	a.window.SetContent(a.tabs)
 	a.window.ShowAndRun()

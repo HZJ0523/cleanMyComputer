@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -114,6 +115,26 @@ func (o *Orchestrator) GetAllRules() []*models.CleanRule {
 	return o.engine.GetEnabledRules(3)
 }
 
+func (o *Orchestrator) GetScanItemsSafe() []*models.ScanItem {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	items := make([]*models.ScanItem, len(o.ScanItems))
+	copy(items, o.ScanItems)
+	return items
+}
+
+func (o *Orchestrator) ClearScanItems() {
+	o.mu.Lock()
+	o.ScanItems = nil
+	o.mu.Unlock()
+}
+
+func (o *Orchestrator) GetScanItemCount() int {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return len(o.ScanItems)
+}
+
 func (o *Orchestrator) RunScan(level int) error {
 	o.mu.Lock()
 	if o.IsScanning {
@@ -134,7 +155,10 @@ func (o *Orchestrator) RunScan(level int) error {
 	// Apply user rule preferences
 	rules := o.engine.GetEnabledRules(level)
 	if o.db != nil {
-		status, _ := o.GetRuleStatus()
+		status, err := o.GetRuleStatus()
+			if err != nil {
+				log.Printf("Warning: failed to load rule status: %v", err)
+			}
 		var filtered []*models.CleanRule
 		for _, r := range rules {
 			if enabled, ok := status[r.ID]; ok {
@@ -166,6 +190,55 @@ func (o *Orchestrator) RunScan(level int) error {
 	o.mu.Unlock()
 
 	return nil
+}
+
+func (o *Orchestrator) RunClean() (CleanSummary, error) {
+	o.mu.Lock()
+	items := o.ScanItems
+	o.mu.Unlock()
+
+	if len(items) == 0 {
+		return CleanSummary{}, nil
+	}
+
+	localAppData := os.Getenv("LOCALAPPDATA")
+	if localAppData == "" {
+		localAppData = os.TempDir()
+	}
+	qDir := filepath.Join(localAppData, "CleanMyComputer", "quarantine")
+	qm, err := cleaner.NewQuarantineManager(qDir)
+	if err != nil {
+		return CleanSummary{}, fmt.Errorf("failed to create quarantine manager: %w", err)
+	}
+
+	var files []*cleaner.FileItem
+	for _, item := range items {
+		files = append(files, &cleaner.FileItem{
+			Path:      item.Path,
+			Size:      item.Size,
+			RiskScore: item.RiskScore,
+		})
+	}
+
+	startTime := time.Now()
+	task := &cleaner.CleanTask{Files: files, TotalSize: 0}
+	executor := cleaner.NewExecutor(qm)
+
+	result, err := executor.Execute(context.Background(), task)
+	if err != nil {
+		return CleanSummary{}, err
+	}
+
+	summary := CleanSummary{
+		Cleaned:   len(result.Cleaned),
+		Failed:    len(result.Failed),
+		FreedSize: result.FreedSize,
+		Duration:  time.Since(startTime),
+	}
+
+	o.SaveCleanHistory(summary)
+	o.ClearScanItems()
+	return summary, nil
 }
 
 func (o *Orchestrator) SaveCleanHistory(result CleanSummary) {
@@ -261,7 +334,9 @@ func (o *Orchestrator) CleanupExpiredQuarantine() error {
 		if err := rows.Scan(&path); err != nil {
 			continue
 		}
-		os.Remove(path)
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+				log.Printf("Warning: failed to remove expired quarantine file %s: %v", path, err)
+			}
 	}
 	_, err = o.db.Conn().Exec("DELETE FROM quarantine WHERE expires_at <= datetime('now')")
 	return err

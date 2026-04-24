@@ -15,13 +15,13 @@ func (a *App) newScannerView() fyne.CanvasObject {
 
 	resultList := widget.NewList(
 		func() int {
-			return len(a.state.ScanItems)
+			return a.state.GetScanItemCount()
 		},
 		func() fyne.CanvasObject {
 			return container.NewVBox(widget.NewLabel(""), widget.NewLabel(""))
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			items := a.state.ScanItems
+			items := a.state.GetScanItemsSafe()
 			if id < len(items) {
 				item := items[id]
 				vbox := obj.(*fyne.Container)

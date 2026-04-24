@@ -43,10 +43,11 @@ func (s *Scheduler) Start() {
 	}
 	s.running = true
 	s.stopCh = make(chan struct{})
+	interval := s.interval
 	s.mu.Unlock()
 
-	go s.run()
-	log.Printf("[Scheduler] started with interval %v", s.interval)
+	go s.run(interval)
+	log.Printf("[Scheduler] started with interval %v", interval)
 }
 
 func (s *Scheduler) Stop() {
@@ -66,12 +67,7 @@ func (s *Scheduler) Running() bool {
 	return s.running
 }
 
-func (s *Scheduler) run() {
-	s.mu.Lock()
-	interval := s.interval
-	level := s.scanLevel
-	s.mu.Unlock()
-
+func (s *Scheduler) run(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -81,7 +77,7 @@ func (s *Scheduler) run() {
 			return
 		case <-ticker.C:
 			s.mu.Lock()
-			level = s.scanLevel
+			level := s.scanLevel
 			s.mu.Unlock()
 
 			log.Printf("[Scheduler] auto-clean triggered at %v", time.Now().Format(time.DateTime))
@@ -90,11 +86,20 @@ func (s *Scheduler) run() {
 				continue
 			}
 
-			if len(s.orch.ScanItems) == 0 {
+			count := s.orch.GetScanItemCount()
+			if count == 0 {
 				log.Printf("[Scheduler] no items to clean")
 				continue
 			}
-			log.Printf("[Scheduler] scan found %d items", len(s.orch.ScanItems))
+			log.Printf("[Scheduler] scan found %d items, starting clean", count)
+
+			summary, err := s.orch.RunClean()
+			if err != nil {
+				log.Printf("[Scheduler] clean failed: %v", err)
+				continue
+			}
+			log.Printf("[Scheduler] auto-clean completed: cleaned=%d, failed=%d, freed=%d bytes",
+				summary.Cleaned, summary.Failed, summary.FreedSize)
 		}
 	}
 }

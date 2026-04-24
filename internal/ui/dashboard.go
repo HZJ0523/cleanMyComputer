@@ -40,7 +40,7 @@ func (a *App) newDashboard() fyne.CanvasObject {
 				})
 				return
 			}
-			count := len(a.state.ScanItems)
+			count := a.state.GetScanItemCount()
 			fyne.Do(func() {
 				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				progressBar.Hide()
@@ -63,7 +63,7 @@ func (a *App) newDashboard() fyne.CanvasObject {
 				})
 				return
 			}
-			count := len(a.state.ScanItems)
+			count := a.state.GetScanItemCount()
 			fyne.Do(func() {
 				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				progressBar.Hide()

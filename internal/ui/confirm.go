@@ -21,7 +21,7 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 	summaryLabel := widget.NewLabel(i18n.T("label.please_scan"))
 
 	confirmBtn := widget.NewButton(i18n.T("btn.confirm_clean"), func() {
-		items := a.state.ScanItems
+		items := a.state.GetScanItemsSafe()
 		if len(items) == 0 {
 			dialog.ShowInformation(i18n.T("dialog.tip"), i18n.T("label.no_items"), a.window)
 			return
@@ -125,7 +125,7 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 		fyne.Do(func() {
 			summaryLabel.SetText(i18n.T("label.clean_complete"))
 			dialog.ShowInformation(i18n.T("dialog.clean_done"), msg, a.window)
-			a.state.ScanItems = nil
+			a.state.ClearScanItems()
 		})
 	}()
 }
