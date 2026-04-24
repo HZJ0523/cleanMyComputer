@@ -38,6 +38,12 @@ func NewApp() *App {
 }
 
 func (a *App) Run() {
+	defer func() {
+		if a.state.DB != nil {
+			a.state.DB.Close()
+		}
+	}()
+
 	dashboard := a.newDashboard()
 	scannerView := a.newScannerView()
 	confirmView := a.newConfirmView()

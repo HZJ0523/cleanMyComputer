@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"log"
+
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
 
@@ -34,6 +36,7 @@ func (h *History) GetAll() ([]*models.CleanRecord, error) {
 	for rows.Next() {
 		var r models.CleanRecord
 		if err := rows.Scan(&r.ID, &r.StartTime, &r.EndTime, &r.ScanLevel, &r.TotalFiles, &r.TotalSize, &r.FreedSize, &r.Status); err != nil {
+			log.Printf("Warning: skipping corrupt history record: %v", err)
 			continue
 		}
 		records = append(records, &r)

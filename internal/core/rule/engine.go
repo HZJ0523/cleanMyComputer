@@ -2,6 +2,7 @@ package rule
 
 import (
 	"context"
+	"log"
 	"sync"
 
 	"github.com/hzj0523/cleanMyComputer/internal/models"
@@ -37,6 +38,8 @@ func (e *Engine) LoadRules(ctx context.Context, level int) error {
 		}
 		if err := rule.Validate(); err == nil {
 			e.rules[rule.ID] = rule
+		} else {
+			log.Printf("Warning: skipping invalid rule %s: %v", rule.ID, err)
 		}
 	}
 	return nil

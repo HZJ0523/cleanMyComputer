@@ -25,14 +25,20 @@ func (a *App) newScannerView() fyne.CanvasObject {
 				vbox := obj.(*fyne.Container)
 				pathLabel := vbox.Objects[0].(*widget.Label)
 				infoLabel := vbox.Objects[1].(*widget.Label)
-				pathLabel.SetText(item.Path)
+
+				displayPath := item.Path
+				if item.Size == 0 && item.ModTime.IsZero() {
+					displayPath = "[命令] " + item.Path
+				}
+				pathLabel.SetText(displayPath)
+
 				riskLabel := "安全"
 				if item.RiskScore > 60 {
 					riskLabel = "高风险"
 				} else if item.RiskScore > 30 {
 					riskLabel = "中等风险"
 				}
-				infoLabel.SetText(fmt.Sprintf("大小: %d 字节 | 风险: %s (%d)", item.Size, riskLabel, item.RiskScore))
+				infoLabel.SetText(fmt.Sprintf("大小: %s | 风险: %s (%d)", formatSize(item.Size), riskLabel, item.RiskScore))
 			}
 		},
 	)

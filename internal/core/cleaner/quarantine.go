@@ -2,6 +2,7 @@ package cleaner
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
@@ -39,7 +40,7 @@ func (q *QuarantineManager) SetRetentionHours(hours int) {
 
 func (q *QuarantineManager) Quarantine(srcPath string) error {
 	fileName := filepath.Base(srcPath)
-	quarantineName := fmt.Sprintf("%d_%s", time.Now().Unix(), fileName)
+	quarantineName := fmt.Sprintf("%d_%d_%s", time.Now().UnixNano(), rand.Intn(10000), fileName)
 	dstPath := filepath.Join(q.baseDir, quarantineName)
 
 	// Get file info before moving

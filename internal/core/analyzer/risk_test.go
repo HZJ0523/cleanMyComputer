@@ -68,3 +68,22 @@ func TestRiskAnalyzer_ForbiddenPath(t *testing.T) {
 		t.Error("Expected normal path to be allowed")
 	}
 }
+
+func TestRiskAnalyzer_IsPathSafe(t *testing.T) {
+	analyzer := NewRiskAnalyzer()
+
+	// Normal temp path should be safe
+	if !analyzer.IsPathSafe("C:\\Users\\test\\AppData\\Local\\Temp\\cache.tmp") {
+		t.Error("Expected temp path to be safe")
+	}
+
+	// Path traversal should be unsafe
+	if analyzer.IsPathSafe("C:\\Users\\test\\..\\Windows\\System32\\config\\SAM") {
+		t.Error("Expected path traversal to be unsafe")
+	}
+
+	// Forbidden path should be unsafe
+	if analyzer.IsPathSafe("C:\\Windows\\SysWOW64\\test.dll") {
+		t.Error("Expected SysWOW64 to be unsafe")
+	}
+}

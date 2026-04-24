@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ type AppState struct {
 	ScanItems  []*models.ScanItem
 	Rules      []*models.CleanRule
 	IsScanning bool
+	scanLevel  int
 
 	OnScanProgress  func(current, total int)
 	OnCleanComplete func(result CleanResult)
@@ -62,8 +64,13 @@ func (s *AppState) InitDB(path string) error {
 
 func (s *AppState) RunScan(level int) error {
 	s.mu.Lock()
+	if s.IsScanning {
+		s.mu.Unlock()
+		return fmt.Errorf("扫描正在进行中，请稍候")
+	}
 	s.IsScanning = true
 	s.ScanItems = nil
+	s.scanLevel = level
 	s.mu.Unlock()
 
 	ctx := context.Background()
@@ -83,7 +90,7 @@ func (s *AppState) RunScan(level int) error {
 	var validItems []*models.ScanItem
 	for _, item := range allItems {
 		item.RiskScore = s.Analyzer.CalculateRisk(item)
-		if !s.Analyzer.IsForbidden(item.Path) {
+		if s.Analyzer.IsPathSafe(item.Path) {
 			validItems = append(validItems, item)
 		}
 	}
@@ -104,7 +111,7 @@ func (s *AppState) SaveCleanHistory(result CleanResult) {
 	record := &models.CleanRecord{
 		StartTime:  now.Add(-result.Duration),
 		EndTime:    now,
-		ScanLevel:  1,
+		ScanLevel:  s.scanLevel,
 		TotalFiles: result.Cleaned + result.Failed,
 		TotalSize:  result.FreedSize,
 		FreedSize:  result.FreedSize,

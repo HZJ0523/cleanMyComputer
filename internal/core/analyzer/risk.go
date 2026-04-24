@@ -29,6 +29,9 @@ func NewRiskAnalyzer() *RiskAnalyzer {
 			"C:\\Windows\\Boot",
 			"C:\\Windows\\EFI",
 			"C:\\$Recycle.Bin",
+			"C:\\Windows\\SysWOW64",
+			"C:\\Program Files\\WindowsApps",
+			"C:\\ProgramData\\Microsoft\\Windows\\Start Menu",
 		},
 	}
 }
@@ -42,6 +45,18 @@ func (r *RiskAnalyzer) IsForbidden(path string) bool {
 		}
 	}
 	return false
+}
+
+// IsPathSafe checks for path traversal and forbidden paths.
+func (r *RiskAnalyzer) IsPathSafe(path string) bool {
+	if strings.Contains(path, "..") {
+		return false
+	}
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	return !r.IsForbidden(absPath)
 }
 
 func (r *RiskAnalyzer) CalculateRisk(item *models.ScanItem) int {

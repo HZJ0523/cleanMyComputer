@@ -76,7 +76,6 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 		TotalSize: totalSize,
 	}
 
-	// Setup executor with quarantine in LOCALAPPDATA
 	localAppData := os.Getenv("LOCALAPPDATA")
 	if localAppData == "" {
 		localAppData = os.TempDir()
@@ -88,7 +87,6 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 		return
 	}
 
-	// Set OnQuarantine callback for persistence
 	qm.OnQuarantine = func(record cleaner.QuarantineRecord) error {
 		log.Printf("[Quarantine] %s -> %s (size=%d, expires=%s)",
 			record.OriginalPath, record.QuarantinePath, record.Size, record.ExpiresAt.Format(time.DateTime))
@@ -116,16 +114,14 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 			Duration:  duration,
 		}
 
-		// Save history to database
 		a.state.SaveCleanHistory(cleanResult)
 
-		// Notify caller for history persistence
 		if a.state.OnCleanComplete != nil {
 			a.state.OnCleanComplete(cleanResult)
 		}
 
-		msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %d 字节\n耗时: %v",
-			cleanResult.Cleaned, cleanResult.Failed, cleanResult.FreedSize, duration)
+		msg := fmt.Sprintf("清理完成！\n清理: %d 个文件\n失败: %d 个文件\n释放: %s\n耗时: %v",
+			cleanResult.Cleaned, cleanResult.Failed, formatSize(cleanResult.FreedSize), duration)
 		fyne.Do(func() {
 			summaryLabel.SetText("清理完成")
 			dialog.ShowInformation("清理完成", msg, a.window)

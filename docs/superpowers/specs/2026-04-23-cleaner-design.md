@@ -1253,76 +1253,6 @@ CleanMyComputer_Setup_v1.0.0.exe
 - 可选：开机自启动
 - 可选：添加右键菜单"使用 CleanMyComputer 清理"
 
-### 自动更新机制
-
-采用客户端主动检查 + 后台下载的方式。
-
-```go
-// internal/app/updater.go
-package app
-
-import (
-    "encoding/json"
-    "net/http"
-    "time"
-)
-
-type UpdateInfo struct {
-    Version     string    `json:"version"`
-    ReleaseDate time.Time `json:"release_date"`
-    DownloadURL string    `json:"download_url"`
-    Changelog   string    `json:"changelog"`
-    Required    bool      `json:"required"`
-}
-
-type Updater struct {
-    currentVersion string
-    checkURL       string
-    client         *http.Client
-}
-
-func (u *Updater) CheckForUpdates() (*UpdateInfo, error) {
-    resp, err := u.client.Get(u.checkURL)
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-    
-    var info UpdateInfo
-    if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-        return nil, err
-    }
-    
-    if u.isNewerVersion(info.Version) {
-        return &info, nil
-    }
-    return nil, nil
-}
-
-func (u *Updater) DownloadAndInstall(info *UpdateInfo) error {
-    // 下载新版本到临时目录
-    tmpFile, err := u.downloadUpdate(info.DownloadURL)
-    if err != nil {
-        return err
-    }
-    
-    // 验证签名
-    if err := u.verifySignature(tmpFile); err != nil {
-        return err
-    }
-    
-    // 启动安装程序并退出当前进程
-    return u.launchInstaller(tmpFile)
-}
-```
-
-**更新策略**：
-- 启动时检查更新（可配置关闭）
-- 每周自动检查一次
-- 发现新版本时弹窗提示
-- 强制更新：安全漏洞修复版本
-- 可选更新：功能增强版本
-
 ---
 
 ## 后续迭代计划
@@ -1335,7 +1265,7 @@ func (u *Updater) DownloadAndInstall(info *UpdateInfo) error {
 - ✅ 历史记录和报告导出
 - ✅ 基础设置和配置管理
 
-### 第二阶段：体验增强（v1.1 - v1.3）
+### 第二阶段：体验增强（v1.1 - v1.2）
 
 #### 1. 跨平台支持
 - 扩展平台适配层，增加 macOS 支持
@@ -1348,40 +1278,6 @@ func (u *Updater) DownloadAndInstall(info *UpdateInfo) error {
 - 根据磁盘使用趋势提示高收益清理项
 - 自动识别长期未访问的大文件和重复文件
 - 提供"推荐清理"模式，默认仅展示高收益低风险项
-
-#### 3. 云同步
-- 同步用户配置、规则启用状态、清理偏好
-- 多设备共享规则黑白名单
-- 云端备份清理报告（默认关闭）
-- 支持本地优先、云端可选的隐私模型
-
-### 第三阶段：智能化扩展（v1.4+）
-
-#### 1. AI 智能分析
-- 基于文件访问频率、修改时间、大小进行价值判断
-- 智能识别"可能无用但有风险"的边界文件
-- 为用户提供自然语言解释："为什么建议清理这个目录"
-- 学习用户操作习惯，优化推荐准确率
-
-#### 2. 企业版能力
-- 集中策略下发
-- 多终端统一配置
-- 设备清理统计面板
-- 管理员审计日志导出
-- 静默部署和命令行模式
-
-#### 3. 高级系统工具集成
-- 启动项管理
-- 服务优化建议
-- 磁盘空间分析可视化
-- 注册表垃圾检测（只读分析优先）
-- 浏览器扩展和残留插件识别
-
-#### 4. 开放生态
-- 插件机制，允许第三方扩展清理规则
-- 自定义规则编辑器
-- 社区规则市场
-- 命令行接口（CLI）和自动化脚本支持
 
 ### 迭代原则
 

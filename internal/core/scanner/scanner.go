@@ -13,14 +13,12 @@ import (
 var winEnvRe = regexp.MustCompile(`%([^%]+)%`)
 
 func expandPath(path string) string {
-	// First expand $VAR / ${VAR} (os.ExpandEnv handles these)
 	expanded := os.ExpandEnv(path)
-	// Then expand Windows %VAR% syntax
 	expanded = winEnvRe.ReplaceAllStringFunc(expanded, func(match string) string {
 		name := match[1 : len(match)-1]
 		return os.Getenv(name)
 	})
-	return expanded
+	return filepath.Clean(expanded)
 }
 
 type Scanner struct {
@@ -32,7 +30,6 @@ func NewScanner(workers int) *Scanner {
 	return &Scanner{workers: workers, filter: NewFilter()}
 }
 
-// ScanRule scans all targets of a single rule, returning ScanItems with RuleID set.
 func (s *Scanner) ScanRule(ctx context.Context, rule *models.CleanRule) ([]*models.ScanItem, error) {
 	var results []*models.ScanItem
 	for _, target := range rule.Targets {
@@ -50,21 +47,24 @@ func (s *Scanner) ScanRule(ctx context.Context, rule *models.CleanRule) ([]*mode
 			}
 			results = append(results, items...)
 		case "command":
-			// command targets are handled by the platform layer
-			// TODO: delegate to platform adapter for command-type cleanup
+			if target.Path != "" {
+				results = append(results, &models.ScanItem{
+					Path:      target.Path,
+					RuleID:    rule.ID,
+					RiskScore: rule.RiskScore,
+				})
+			}
 		}
 	}
 	return results, nil
 }
 
 func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID string) ([]*models.ScanItem, error) {
-	// BUG-001 fix: expand environment variables including %VAR% syntax
 	expandedPath := expandPath(target.Path)
 
 	var results []*models.ScanItem
 
 	if target.Recursive {
-		// BUG-002 fix: recursive scanning with depth control
 		maxDepth := target.MaxDepth
 		if maxDepth <= 0 {
 			maxDepth = 10
@@ -79,7 +79,6 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			default:
 			}
 
-			// Compute depth by counting separators in relative path
 			rel, err := filepath.Rel(expandedPath, path)
 			if err != nil {
 				return nil
@@ -101,7 +100,6 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 				return nil
 			}
 
-			// Pattern matching
 			if target.Pattern != "" && target.Pattern != "*" {
 				matched, _ := filepath.Match(target.Pattern, d.Name())
 				if !matched {
@@ -109,11 +107,9 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 				}
 			}
 
-			// Filter fix: check global exclude list
 			if !s.filter.ShouldInclude(path) {
 				return nil
 			}
-			// Check target-level exclude list
 			for _, exclude := range target.ExcludeList {
 				matched, _ := filepath.Match(exclude, d.Name())
 				if matched {
@@ -135,7 +131,6 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			return nil
 		})
 	} else {
-		// Non-recursive: single-level scan
 		matches, err := filepath.Glob(filepath.Join(expandedPath, target.Pattern))
 		if err != nil {
 			return nil, err
@@ -148,7 +143,6 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			if !s.filter.ShouldInclude(match) {
 				continue
 			}
-			// Check target-level exclude list
 			excluded := false
 			for _, exclude := range target.ExcludeList {
 				matched, _ := filepath.Match(exclude, filepath.Base(match))

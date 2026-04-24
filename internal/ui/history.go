@@ -30,8 +30,8 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 			vbox := obj.(*fyne.Container)
 			line1 := vbox.Objects[0].(*widget.Label)
 			line2 := vbox.Objects[1].(*widget.Label)
-			line1.SetText(fmt.Sprintf("%s | 释放: %d 字节 | 状态: %s",
-				r.StartTime.Format("2006-01-02 15:04"), r.FreedSize, r.Status))
+			line1.SetText(fmt.Sprintf("%s | 释放: %s | 状态: %s",
+				r.StartTime.Format("2006-01-02 15:04"), formatSize(r.FreedSize), r.Status))
 			line2.SetText(fmt.Sprintf("文件数: %d | 耗时: %s",
 				r.TotalFiles, r.EndTime.Sub(r.StartTime).Round(time.Second)))
 		},

@@ -3,6 +3,8 @@ package cleaner
 import (
 	"context"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -57,8 +59,19 @@ func (e *Executor) cleanFile(file *FileItem) error {
 	if e.dryRun {
 		return nil
 	}
+	// Command-type targets (recycle bin, docker prune, etc.)
+	if !strings.Contains(file.Path, "\\") && !strings.Contains(file.Path, "/") {
+		return e.executeCommand(file.Path)
+	}
 	if file.RiskScore > 60 {
 		return e.quarantine.Quarantine(file.Path)
 	}
 	return os.Remove(file.Path)
+}
+
+func (e *Executor) executeCommand(cmd string) error {
+	if cmd == "Clear-RecycleBin" {
+		return exec.Command("powershell", "-Command", "Clear-RecycleBin -Force").Run()
+	}
+	return exec.Command("cmd", "/C", cmd).Run()
 }
