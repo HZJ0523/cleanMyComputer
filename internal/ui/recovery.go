@@ -7,22 +7,29 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
-func (a *App) newRecoveryView() fyne.CanvasObject {
-	qList := widget.NewList(
+type recoveryView struct {
+	app  *App
+	list *widget.List
+}
+
+func (r *recoveryView) build() fyne.CanvasObject {
+	r.list = widget.NewList(
 		func() int {
-			items, _ := a.state.GetQuarantinedItems()
+			items, _ := r.app.state.GetQuarantinedItems()
 			return len(items)
 		},
 		func() fyne.CanvasObject {
 			return container.NewBorder(nil, nil, nil,
-				container.NewHBox(widget.NewButton("恢复", nil), widget.NewButton("永久删除", nil)),
+				container.NewHBox(widget.NewButton(i18n.T("btn.restore"), nil), widget.NewButton(i18n.T("btn.permanent_delete"), nil)),
 				container.NewVBox(widget.NewLabel(""), widget.NewLabel("")),
 			)
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			items, _ := a.state.GetQuarantinedItems()
+			items, _ := r.app.state.GetQuarantinedItems()
 			if id >= len(items) {
 				return
 			}
@@ -34,10 +41,10 @@ func (a *App) newRecoveryView() fyne.CanvasObject {
 			pathLabel := vbox.Objects[0].(*widget.Label)
 			infoLabel := vbox.Objects[1].(*widget.Label)
 			pathLabel.SetText(item.OriginalPath)
-			infoLabel.SetText(fmt.Sprintf("大小: %s | 隔离时间: %s | 过期: %s",
-				formatSize(item.Size),
-				item.CreatedAt.Format("2006-01-02 15:04"),
-				item.ExpiresAt.Format("2006-01-02 15:04")))
+			infoLabel.SetText(fmt.Sprintf("%s: %s | %s: %s | %s: %s",
+				i18n.T("label.size"), formatSize(item.Size),
+				i18n.T("label.quarantine_time"), item.CreatedAt.Format("2006-01-02 15:04"),
+				i18n.T("label.expires"), item.ExpiresAt.Format("2006-01-02 15:04")))
 
 			qPath := item.QuarantinePath
 			oPath := item.OriginalPath
@@ -46,46 +53,51 @@ func (a *App) newRecoveryView() fyne.CanvasObject {
 			deleteBtn := btnBox.Objects[1].(*widget.Button)
 
 			restoreBtn.OnTapped = func() {
-				dialog.ShowConfirm("恢复文件",
-					fmt.Sprintf("将文件恢复到:\n%s", oPath),
+				dialog.ShowConfirm(i18n.T("dialog.confirm_restore"),
+					fmt.Sprintf(i18n.T("dialog.restore_msg"), oPath),
 					func(ok bool) {
 						if !ok {
 							return
 						}
-						if err := a.state.RestoreQuarantinedItem(qPath, oPath); err != nil {
-							dialog.ShowError(err, a.window)
+						if err := r.app.state.RestoreQuarantinedItem(qPath, oPath); err != nil {
+							dialog.ShowError(err, r.app.window)
 							return
 						}
-						dialog.ShowInformation("成功", "文件已恢复", a.window)
-						qList.Refresh()
-					}, a.window)
+						dialog.ShowInformation(i18n.T("dialog.success"), i18n.T("dialog.file_restored"), r.app.window)
+						r.list.Refresh()
+					}, r.app.window)
 			}
 
 			deleteBtn.OnTapped = func() {
-				dialog.ShowConfirm("永久删除",
-					"此操作不可逆，文件将被永久删除。确认？",
+				dialog.ShowConfirm(i18n.T("dialog.confirm_permanent_delete"),
+					i18n.T("dialog.permanent_delete_msg"),
 					func(ok bool) {
 						if !ok {
 							return
 						}
-						if err := a.state.DeleteQuarantinedItem(qPath); err != nil {
-							dialog.ShowError(err, a.window)
+						if err := r.app.state.DeleteQuarantinedItem(qPath); err != nil {
+							dialog.ShowError(err, r.app.window)
 							return
 						}
-						dialog.ShowInformation("成功", "文件已永久删除", a.window)
-						qList.Refresh()
-					}, a.window)
+						dialog.ShowInformation(i18n.T("dialog.success"), i18n.T("dialog.file_deleted"), r.app.window)
+						r.list.Refresh()
+					}, r.app.window)
 			}
 		},
 	)
 
-	refreshBtn := widget.NewButton("刷新", func() {
-		qList.Refresh()
+	refreshBtn := widget.NewButton(i18n.T("btn.refresh"), func() {
+		r.list.Refresh()
 	})
 
 	return container.NewBorder(
-		container.NewVBox(widget.NewLabel("恢复中心 - 隔离文件管理"), refreshBtn),
+		container.NewVBox(widget.NewLabel(i18n.T("label.recovery_center")), refreshBtn),
 		nil, nil, nil,
-		qList,
+		r.list,
 	)
+}
+
+func (a *App) newRecoveryView() fyne.CanvasObject {
+	v := &recoveryView{app: a}
+	return v.build()
 }

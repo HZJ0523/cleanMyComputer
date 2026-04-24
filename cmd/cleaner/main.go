@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 
@@ -16,7 +17,9 @@ func main() {
 	if localAppData == "" {
 		localAppData = os.TempDir()
 	}
-	logger.Init(filepath.Join(localAppData, "CleanMyComputer", "logs"))
+	if err := logger.Init(filepath.Join(localAppData, "CleanMyComputer", "logs")); err != nil {
+		log.Printf("Warning: failed to init logger: %v", err)
+	}
 
 	app := ui.NewApp()
 	app.Run()

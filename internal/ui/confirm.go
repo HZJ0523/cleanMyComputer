@@ -14,15 +14,16 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/hzj0523/cleanMyComputer/internal/core/cleaner"
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 func (a *App) newConfirmView() fyne.CanvasObject {
-	summaryLabel := widget.NewLabel("请先扫描")
+	summaryLabel := widget.NewLabel(i18n.T("label.please_scan"))
 
-	confirmBtn := widget.NewButton("确认清理", func() {
+	confirmBtn := widget.NewButton(i18n.T("btn.confirm_clean"), func() {
 		items := a.state.ScanItems
 		if len(items) == 0 {
-			dialog.ShowInformation("提示", "没有可清理的项目", a.window)
+			dialog.ShowInformation(i18n.T("dialog.tip"), i18n.T("label.no_items"), a.window)
 			return
 		}
 
@@ -46,8 +47,8 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 			}
 		}
 		if highRiskCount > 0 {
-			dialog.ShowConfirm("高风险清理",
-				fmt.Sprintf("发现 %d 个高风险文件，这些文件将被移入隔离区而非直接删除。是否继续？", highRiskCount),
+			dialog.ShowConfirm(i18n.T("dialog.high_risk_clean"),
+				fmt.Sprintf(i18n.T("dialog.high_risk_msg"), highRiskCount),
 				func(confirmed bool) {
 					if confirmed {
 						a.executeClean(files, totalSize, summaryLabel, startTime)
@@ -58,7 +59,7 @@ func (a *App) newConfirmView() fyne.CanvasObject {
 		a.executeClean(files, totalSize, summaryLabel, startTime)
 	})
 
-	cancelBtn := widget.NewButton("返回", func() {
+	cancelBtn := widget.NewButton(i18n.T("btn.back"), func() {
 		a.selectTab(1)
 	})
 
@@ -81,7 +82,7 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 	qDir := filepath.Join(localAppData, "CleanMyComputer", "quarantine")
 	qm, err := cleaner.NewQuarantineManager(qDir)
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("创建隔离目录失败: %w", err), a.window)
+		dialog.ShowError(fmt.Errorf("%s: %w", i18n.T("dialog.create_quarantine_failed"), err), a.window)
 		return
 	}
 
@@ -96,7 +97,7 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 
 	executor := cleaner.NewExecutor(qm)
 
-	summaryLabel.SetText("正在清理...")
+	summaryLabel.SetText(i18n.T("label.cleaning"))
 
 	go func() {
 		result, err := executor.Execute(context.Background(), task)
@@ -117,13 +118,13 @@ func (a *App) executeClean(files []*cleaner.FileItem, totalSize int64, summaryLa
 
 		a.state.SaveCleanHistory(cleanResult)
 
-		msg := fmt.Sprintf("清理完成！\n删除: %d 个文件 (释放 %s)\n隔离: %d 个文件 (%s)\n失败: %d 个文件\n耗时: %v",
+		msg := fmt.Sprintf(i18n.T("dialog.clean_result"),
 			len(result.Cleaned)-len(result.Quarantined), formatSize(result.FreedSize),
 			len(result.Quarantined), formatSize(result.QuarantinedSize),
 			len(result.Failed), duration)
 		fyne.Do(func() {
-			summaryLabel.SetText("清理完成")
-			dialog.ShowInformation("清理完成", msg, a.window)
+			summaryLabel.SetText(i18n.T("label.clean_complete"))
+			dialog.ShowInformation(i18n.T("dialog.clean_done"), msg, a.window)
 			a.state.ScanItems = nil
 		})
 	}()

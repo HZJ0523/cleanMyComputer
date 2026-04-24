@@ -8,10 +8,11 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 func (a *App) newSettingsView() fyne.CanvasObject {
-	// Rule list
 	ruleList := widget.NewList(
 		func() int {
 			rules := a.state.GetAllRules()
@@ -36,26 +37,24 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 					dialog.ShowError(err, a.window)
 				}
 			}
-			levelLabel := "安全"
+			levelLabel := i18n.T("label.level_safe")
 			if rule.Level == 2 {
-				levelLabel = "深度"
+				levelLabel = i18n.T("label.level_deep")
 			} else if rule.Level == 3 {
-				levelLabel = "高级"
+				levelLabel = i18n.T("label.level_advanced")
 			}
 			label.SetText(fmt.Sprintf("%s [%s] %s", rule.Name, levelLabel, rule.Description))
 		},
 	)
 
-	// Retention hours
 	retentionEntry := widget.NewEntry()
 	retentionEntry.SetPlaceHolder("24")
 	if val, err := a.state.GetConfig("quarantine_retention_hours"); err == nil && val != "" {
 		retentionEntry.SetText(val)
 	}
-	retentionLabel := widget.NewLabel("隔离区保留时间（小时）")
+	retentionLabel := widget.NewLabel(i18n.T("label.quarantine_retention"))
 
-	// Auto-clean controls
-	autoCleanCheck := widget.NewCheck("启用自动清理", nil)
+	autoCleanCheck := widget.NewCheck(i18n.T("label.auto_clean_enable"), nil)
 	if val, err := a.state.GetConfig("auto_clean_enabled"); err == nil && val == "true" {
 		autoCleanCheck.SetChecked(true)
 	}
@@ -65,9 +64,9 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 	if val, err := a.state.GetConfig("auto_clean_interval_hours"); err == nil && val != "" {
 		intervalEntry.SetText(val)
 	}
-	intervalLabel := widget.NewLabel("清理间隔（小时）")
+	intervalLabel := widget.NewLabel(i18n.T("label.auto_clean_interval"))
 
-	saveBtn := widget.NewButton("保存设置", func() {
+	saveBtn := widget.NewButton(i18n.T("btn.save"), func() {
 		if retentionEntry.Text != "" {
 			if err := a.state.SetConfig("quarantine_retention_hours", retentionEntry.Text); err != nil {
 				dialog.ShowError(err, a.window)
@@ -93,22 +92,22 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 
 		a.applyAutoCleanSettings(autoCleanCheck.Checked, intervalEntry.Text)
 
-		dialog.ShowInformation("提示", "设置已保存", a.window)
+		dialog.ShowInformation(i18n.T("dialog.tip"), i18n.T("dialog.settings_saved"), a.window)
 	})
 
-	refreshBtn := widget.NewButton("刷新规则列表", func() {
+	refreshBtn := widget.NewButton(i18n.T("btn.refresh_rules"), func() {
 		ruleList.Refresh()
 	})
 
 	return container.NewBorder(
 		container.NewVBox(
-			widget.NewLabelWithStyle("设置", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+			widget.NewLabelWithStyle(i18n.T("label.settings"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			container.NewHBox(retentionLabel, retentionEntry),
 			widget.NewSeparator(),
 			container.NewHBox(autoCleanCheck, intervalLabel, intervalEntry),
 			saveBtn,
 			widget.NewSeparator(),
-			widget.NewLabel("清理规则启用/禁用"),
+			widget.NewLabel(i18n.T("label.rule_toggle")),
 			refreshBtn,
 		),
 		nil, nil, nil,

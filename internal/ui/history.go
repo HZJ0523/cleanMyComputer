@@ -13,6 +13,7 @@ import (
 
 	"github.com/hzj0523/cleanMyComputer/internal/core/report"
 	"github.com/hzj0523/cleanMyComputer/internal/models"
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 func (a *App) newHistoryView() fyne.CanvasObject {
@@ -36,25 +37,28 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 			vbox := obj.(*fyne.Container)
 			line1 := vbox.Objects[0].(*widget.Label)
 			line2 := vbox.Objects[1].(*widget.Label)
-			line1.SetText(fmt.Sprintf("%s | 释放: %s | 状态: %s",
-				r.StartTime.Format("2006-01-02 15:04"), formatSize(r.FreedSize), r.Status))
-			line2.SetText(fmt.Sprintf("文件数: %d | 耗时: %s",
-				r.TotalFiles, r.EndTime.Sub(r.StartTime).Round(time.Second)))
+			line1.SetText(fmt.Sprintf("%s | %s: %s | %s: %s",
+				r.StartTime.Format("2006-01-02 15:04"),
+				i18n.T("label.released"), formatSize(r.FreedSize),
+				i18n.T("label.status"), r.Status))
+			line2.SetText(fmt.Sprintf("%s: %d | %s: %s",
+				i18n.T("label.file_count"), r.TotalFiles,
+				i18n.T("label.duration"), r.EndTime.Sub(r.StartTime).Round(time.Second)))
 		},
 	)
 
-	refreshBtn := widget.NewButton("刷新", func() {
+	refreshBtn := widget.NewButton(i18n.T("btn.refresh"), func() {
 		historyList.Refresh()
 	})
 
-	exportBtn := widget.NewButton("导出报告", func() {
+	exportBtn := widget.NewButton(i18n.T("btn.export_report"), func() {
 		records, err := a.state.GetHistory()
 		if err != nil {
 			dialog.ShowError(err, a.window)
 			return
 		}
 		if len(records) == 0 {
-			dialog.ShowInformation("提示", "没有历史记录可导出", a.window)
+			dialog.ShowInformation(i18n.T("dialog.tip"), i18n.T("dialog.no_history"), a.window)
 			return
 		}
 
@@ -85,11 +89,12 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 			dialog.ShowError(err, a.window)
 			return
 		}
-		dialog.ShowInformation("导出成功", fmt.Sprintf("报告已保存到:\n%s", exportPath), a.window)
+		dialog.ShowInformation(i18n.T("dialog.export_success"),
+			fmt.Sprintf(i18n.T("dialog.export_msg"), exportPath), a.window)
 	})
 
 	return container.NewBorder(
-		container.NewVBox(widget.NewLabel("清理历史"), container.NewHBox(refreshBtn, exportBtn)),
+		container.NewVBox(widget.NewLabel(i18n.T("label.clean_history")), container.NewHBox(refreshBtn, exportBtn)),
 		nil, nil, nil,
 		historyList,
 	)

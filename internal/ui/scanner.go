@@ -6,10 +6,12 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
 func (a *App) newScannerView() fyne.CanvasObject {
-	headerLabel := widget.NewLabel("扫描结果")
+	headerLabel := widget.NewLabel(i18n.T("label.scan_results"))
 
 	resultList := widget.NewList(
 		func() int {
@@ -28,22 +30,24 @@ func (a *App) newScannerView() fyne.CanvasObject {
 
 				displayPath := item.Path
 				if item.Size == 0 && item.ModTime.IsZero() {
-					displayPath = "[命令] " + item.Path
+					displayPath = i18n.T("label.command") + " " + item.Path
 				}
 				pathLabel.SetText(displayPath)
 
-				riskLabel := "安全"
+				riskLabel := i18n.T("risk.safe")
 				if item.RiskScore > 60 {
-					riskLabel = "高风险"
+					riskLabel = i18n.T("risk.high")
 				} else if item.RiskScore > 30 {
-					riskLabel = "中等风险"
+					riskLabel = i18n.T("risk.moderate")
 				}
-				infoLabel.SetText(fmt.Sprintf("大小: %s | 风险: %s (%d)", formatSize(item.Size), riskLabel, item.RiskScore))
+				infoLabel.SetText(fmt.Sprintf("%s: %s | %s: %s (%d)",
+					i18n.T("label.size"), formatSize(item.Size),
+					i18n.T("label.risk"), riskLabel, item.RiskScore))
 			}
 		},
 	)
 
-	cleanBtn := widget.NewButton("开始清理", func() {
+	cleanBtn := widget.NewButton(i18n.T("btn.start_clean"), func() {
 		a.selectTab(2)
 	})
 

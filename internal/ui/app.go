@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -45,6 +46,9 @@ func (a *App) Run() {
 		}
 	}()
 
+	a.state.CleanupExpiredQuarantine()
+	a.restoreScheduler()
+
 	dashboard := a.newDashboard()
 	scannerView := a.newScannerView()
 	confirmView := a.newConfirmView()
@@ -70,4 +74,22 @@ func (a *App) selectTab(index int) {
 			a.tabs.SelectIndex(index)
 		})
 	}
+}
+
+func (a *App) restoreScheduler() {
+	enabled, err := a.state.GetConfig("auto_clean_enabled")
+	if err != nil || enabled != "true" {
+		return
+	}
+	intervalStr, _ := a.state.GetConfig("auto_clean_interval_hours")
+	hours := 24
+	if intervalStr != "" {
+		if h, err := strconv.Atoi(intervalStr); err == nil && h > 0 {
+			hours = h
+		}
+	}
+	a.scheduler = newScheduler(a.state.Orchestrator)
+	a.scheduler.SetInterval(hours)
+	a.scheduler.Start()
+	log.Printf("[App] auto-clean scheduler restored (interval=%dh)", hours)
 }
