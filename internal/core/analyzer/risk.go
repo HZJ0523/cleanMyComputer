@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -36,18 +37,17 @@ func NewRiskAnalyzer() *RiskAnalyzer {
 	}
 }
 
-// IsForbidden 检查路径是否在禁止清理列表中
 func (r *RiskAnalyzer) IsForbidden(path string) bool {
 	lowerPath := strings.ToLower(path)
 	for _, fp := range r.forbiddenPaths {
-		if strings.HasPrefix(lowerPath, strings.ToLower(fp)) {
+		lowerFP := strings.ToLower(fp)
+		if lowerPath == lowerFP || strings.HasPrefix(lowerPath, lowerFP+string(os.PathSeparator)) {
 			return true
 		}
 	}
 	return false
 }
 
-// IsPathSafe checks for path traversal and forbidden paths.
 func (r *RiskAnalyzer) IsPathSafe(path string) bool {
 	if strings.Contains(path, "..") {
 		return false
@@ -83,7 +83,8 @@ func (r *RiskAnalyzer) CalculateRisk(item *models.ScanItem) int {
 func (r *RiskAnalyzer) isSystemPath(path string) bool {
 	lowerPath := strings.ToLower(path)
 	for sysPath := range r.systemPaths {
-		if strings.HasPrefix(lowerPath, strings.ToLower(sysPath)) {
+		lowerSys := strings.ToLower(sysPath)
+		if lowerPath == lowerSys || strings.HasPrefix(lowerPath, lowerSys+string(os.PathSeparator)) {
 			return true
 		}
 	}

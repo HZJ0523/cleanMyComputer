@@ -77,8 +77,9 @@ type DiskUsage struct {
 }
 
 func (w *WindowsPlatform) GetDiskUsage(path string) (*DiskUsage, error) {
-	var freeBytes uint64
+	var freeAvailableBytes uint64
 	var totalBytes uint64
+	var freeBytes uint64
 
 	root := filepath.VolumeName(path) + "\\"
 	kernel32 := windows.NewLazyDLL("kernel32.dll")
@@ -87,7 +88,7 @@ func (w *WindowsPlatform) GetDiskUsage(path string) (*DiskUsage, error) {
 
 	ret, _, _ := getDiskFreeSpaceEx.Call(
 		uintptr(unsafe.Pointer(rootPtr)),
-		0,
+		uintptr(unsafe.Pointer(&freeAvailableBytes)),
 		uintptr(unsafe.Pointer(&totalBytes)),
 		uintptr(unsafe.Pointer(&freeBytes)),
 	)

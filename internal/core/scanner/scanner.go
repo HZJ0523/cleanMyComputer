@@ -59,6 +59,7 @@ func (s *Scanner) ScanRule(ctx context.Context, rule *models.CleanRule) ([]*mode
 					Path:      target.Path,
 					RuleID:    rule.ID,
 					RiskScore: rule.RiskScore,
+					Type:      "command",
 				})
 			}
 		}

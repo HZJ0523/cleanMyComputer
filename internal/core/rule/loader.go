@@ -2,6 +2,7 @@ package rule
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -18,7 +19,6 @@ func NewLoader() *Loader {
 		return &Loader{rulesDir: "configs/rules"}
 	}
 	rulesDir := filepath.Join(filepath.Dir(exe), "configs", "rules")
-	// Fall back to relative path if the exe-relative dir doesn't exist
 	if _, err := os.Stat(rulesDir); err != nil {
 		rulesDir = "configs/rules"
 	}
@@ -43,7 +43,7 @@ func (l *Loader) LoadByLevel(level int) ([]*models.CleanRule, error) {
 	var allRules []*models.CleanRule
 
 	for i := 1; i <= level; i++ {
-		filename := filepath.Join(l.rulesDir, "level"+string(rune(i+'0'))+"_*.json")
+		filename := filepath.Join(l.rulesDir, fmt.Sprintf("level%d_*.json", i))
 		matches, _ := filepath.Glob(filename)
 
 		for _, match := range matches {

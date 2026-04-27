@@ -5,10 +5,10 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
-// QuarantineRecord 记录隔离信息，由调用者持久化
 type QuarantineRecord struct {
 	OriginalPath   string
 	QuarantinePath string
@@ -28,18 +28,26 @@ func NewQuarantineManager(baseDir string) (*QuarantineManager, error) {
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create quarantine directory: %w", err)
 	}
+	absBase, _ := filepath.Abs(baseDir)
 	return &QuarantineManager{
-		baseDir:        baseDir,
+		baseDir:        absBase,
 		retentionHours: 24,
 	}, nil
 }
 
 func (q *QuarantineManager) Quarantine(srcPath string) error {
+	absSrc, err := filepath.Abs(srcPath)
+	if err != nil {
+		return fmt.Errorf("invalid source path: %w", err)
+	}
+	if strings.HasPrefix(absSrc, q.baseDir+string(os.PathSeparator)) {
+		return fmt.Errorf("cannot quarantine a file already in quarantine directory")
+	}
+
 	fileName := filepath.Base(srcPath)
 	quarantineName := fmt.Sprintf("%d_%d_%s", time.Now().UnixNano(), rand.Intn(10000), fileName)
 	dstPath := filepath.Join(q.baseDir, quarantineName)
 
-	// Get file info before moving
 	info, err := os.Stat(srcPath)
 	var size int64
 	if err == nil {
@@ -50,16 +58,18 @@ func (q *QuarantineManager) Quarantine(srcPath string) error {
 		return err
 	}
 
-	// Notify caller for persistence
 	if q.OnQuarantine != nil {
 		now := time.Now()
-		q.OnQuarantine(QuarantineRecord{
+		if err := q.OnQuarantine(QuarantineRecord{
 			OriginalPath:   srcPath,
 			QuarantinePath: dstPath,
 			Size:           size,
+			RiskScore:      0,
 			CreatedAt:      now,
 			ExpiresAt:      now.Add(time.Duration(q.retentionHours) * time.Hour),
-		})
+		}); err != nil {
+			return fmt.Errorf("quarantine succeeded but failed to persist record: %w", err)
+		}
 	}
 
 	return nil

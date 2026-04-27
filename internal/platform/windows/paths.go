@@ -15,11 +15,8 @@ func (p *PathDiscovery) BrowserCachePaths() []string {
 	localAppData := os.Getenv("LOCALAPPDATA")
 
 	return []string{
-		// Chrome
 		filepath.Join(localAppData, "Google", "Chrome", "User Data", "Default", "Cache"),
-		// Edge
 		filepath.Join(localAppData, "Microsoft", "Edge", "User Data", "Default", "Cache"),
-		// Firefox
 		filepath.Join(localAppData, "Mozilla", "Firefox", "Profiles"),
 	}
 }
@@ -37,12 +34,17 @@ func (p *PathDiscovery) DevCachePaths() map[string]string {
 	appData := os.Getenv("APPDATA")
 	home, _ := os.UserHomeDir()
 
+	goPath := os.Getenv("GOPATH")
+	if goPath == "" {
+		goPath = filepath.Join(home, "go")
+	}
+
 	return map[string]string{
 		"npm":    filepath.Join(appData, "npm-cache"),
 		"pip":    filepath.Join(localAppData, "pip", "Cache"),
 		"maven":  filepath.Join(home, ".m2", "repository"),
 		"gradle": filepath.Join(home, ".gradle", "caches"),
 		"cargo":  filepath.Join(home, ".cargo", "registry"),
-		"go":     filepath.Join(os.Getenv("GOPATH"), "pkg", "mod"),
+		"go":     filepath.Join(goPath, "pkg", "mod"),
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hzj0523/cleanMyComputer/internal/core/cleaner"
 )
@@ -93,6 +94,22 @@ func TestGetQuarantinedItemsWithoutDB(t *testing.T) {
 	}
 }
 
+func TestRestoreQuarantinedItemWithoutDB(t *testing.T) {
+	o := NewOrchestrator()
+	err := o.RestoreQuarantinedItem("/a", "/b")
+	if err == nil {
+		t.Error("expected error when DB not initialized")
+	}
+}
+
+func TestDeleteQuarantinedItemWithoutDB(t *testing.T) {
+	o := NewOrchestrator()
+	err := o.DeleteQuarantinedItem("/a")
+	if err == nil {
+		t.Error("expected error when DB not initialized")
+	}
+}
+
 func TestRunScanTwiceConcurrent(t *testing.T) {
 	o := NewOrchestrator()
 	tmpDir := t.TempDir()
@@ -102,23 +119,47 @@ func TestRunScanTwiceConcurrent(t *testing.T) {
 	}
 	defer o.CloseDB()
 
-	// First scan should succeed
-	done := make(chan error, 1)
+	firstDone := make(chan error, 1)
+	secondDone := make(chan error, 1)
+
 	go func() {
-		done <- o.RunScan(1)
+		firstDone <- o.RunScan(1)
 	}()
 
-	// Second scan while first is running should fail
-	// Give a moment for the goroutine to start
-	err := <-done
-	if err != nil {
-		t.Logf("first scan: %v", err)
+	// Give a moment for the first goroutine to start scanning
+	time.Sleep(50 * time.Millisecond)
+
+	go func() {
+		secondDone <- o.RunScan(1)
+	}()
+
+	err1 := <-firstDone
+	err2 := <-secondDone
+
+	if err1 != nil {
+		t.Logf("first scan: %v (may fail due to no rules dir)", err1)
+	}
+	// The second scan should get ErrScanInProgress if first was still running,
+	// or may also fail normally if first already finished
+	if err2 == ErrScanInProgress {
+		t.Log("second scan correctly blocked by first scan")
+	}
+}
+
+func TestRunScanResetsIsScanningOnError(t *testing.T) {
+	o := NewOrchestrator()
+
+	if err := o.RunScan(1); err != nil {
+		// RunScan will fail since no rules dir exists
+		// but IsScanning must be reset
+	}
+	if o.IsScanning {
+		t.Error("IsScanning should be false after RunScan returns (even on error)")
 	}
 }
 
 func TestSaveCleanHistoryWithoutDB(t *testing.T) {
 	o := NewOrchestrator()
-	// Should not panic
 	o.SaveCleanHistory(CleanSummary{
 		Cleaned:   5,
 		Failed:    0,
@@ -129,7 +170,6 @@ func TestSaveCleanHistoryWithoutDB(t *testing.T) {
 func TestFindDuplicateFiles(t *testing.T) {
 	o := NewOrchestrator()
 	tmpDir := t.TempDir()
-	// Create two identical files larger than 1KB minimum
 	content := make([]byte, 2048)
 	for i := range content {
 		content[i] = byte(i % 256)
@@ -149,7 +189,6 @@ func TestFindDuplicateFiles(t *testing.T) {
 func TestFindLargeFiles(t *testing.T) {
 	o := NewOrchestrator()
 	tmpDir := t.TempDir()
-	// Create a file larger than threshold
 	largeContent := make([]byte, 1024)
 	os.WriteFile(filepath.Join(tmpDir, "big.dat"), largeContent, 0644)
 

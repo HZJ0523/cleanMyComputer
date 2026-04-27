@@ -2,11 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 	"path/filepath"
 	"sync"
 	"time"
@@ -18,6 +17,8 @@ import (
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 	"github.com/hzj0523/cleanMyComputer/internal/storage"
 )
+
+var ErrScanInProgress = errors.New("scan already in progress")
 
 type CleanSummary struct {
 	Cleaned   int
@@ -96,9 +97,13 @@ func (o *Orchestrator) GetRuleStatus() (map[string]bool, error) {
 		var ruleID string
 		var enabled bool
 		if err := rows.Scan(&ruleID, &enabled); err != nil {
+			log.Printf("Warning: skipping corrupt rule_status row: %v", err)
 			continue
 		}
 		status[ruleID] = enabled
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed iterating rule_status rows: %w", err)
 	}
 	return status, nil
 }
@@ -141,12 +146,18 @@ func (o *Orchestrator) RunScan(level int) error {
 	o.mu.Lock()
 	if o.IsScanning {
 		o.mu.Unlock()
-		return fmt.Errorf("%s", i18n.T("dialog.scan_in_progress"))
+		return ErrScanInProgress
 	}
 	o.IsScanning = true
 	o.ScanItems = nil
 	o.scanLevel = level
 	o.mu.Unlock()
+
+	defer func() {
+		o.mu.Lock()
+		o.IsScanning = false
+		o.mu.Unlock()
+	}()
 
 	ctx := context.Background()
 
@@ -154,13 +165,12 @@ func (o *Orchestrator) RunScan(level int) error {
 		return err
 	}
 
-	// Apply user rule preferences
 	rules := o.engine.GetEnabledRules(level)
 	if o.db != nil {
 		status, err := o.GetRuleStatus()
-			if err != nil {
-				log.Printf("Warning: failed to load rule status: %v", err)
-			}
+		if err != nil {
+			log.Printf("Warning: failed to load rule status: %v", err)
+		}
 		var filtered []*models.CleanRule
 		for _, r := range rules {
 			if enabled, ok := status[r.ID]; ok {
@@ -188,7 +198,6 @@ func (o *Orchestrator) RunScan(level int) error {
 
 	o.mu.Lock()
 	o.ScanItems = validItems
-	o.IsScanning = false
 	o.mu.Unlock()
 
 	return nil
@@ -213,12 +222,21 @@ func (o *Orchestrator) RunClean() (CleanSummary, error) {
 		return CleanSummary{}, fmt.Errorf("failed to create quarantine manager: %w", err)
 	}
 
+	qm.OnQuarantine = func(record cleaner.QuarantineRecord) error {
+		if err := o.SaveQuarantineRecord(record); err != nil {
+			log.Printf("Failed to save quarantine record: %v", err)
+			return err
+		}
+		return nil
+	}
+
 	var files []*cleaner.FileItem
 	for _, item := range items {
 		files = append(files, &cleaner.FileItem{
 			Path:      item.Path,
 			Size:      item.Size,
 			RiskScore: item.RiskScore,
+			Type:      item.Type,
 		})
 	}
 
@@ -249,16 +267,21 @@ func (o *Orchestrator) SaveCleanHistory(result CleanSummary) {
 	}
 	now := time.Now()
 	record := &models.CleanRecord{
-		StartTime:  now.Add(-result.Duration),
-		EndTime:    now,
-		ScanLevel:  o.scanLevel,
-		TotalFiles: result.Cleaned + result.Failed,
-		TotalSize:  result.FreedSize,
-		FreedSize:  result.FreedSize,
-		Status:     "success",
+		StartTime:   now.Add(-result.Duration),
+		EndTime:     now,
+		ScanLevel:   o.scanLevel,
+		TotalFiles:  result.Cleaned + result.Failed,
+		TotalSize:   result.FreedSize,
+		FreedSize:   result.FreedSize,
+		FailedCount: result.Failed,
+		Status:      "success",
 	}
 	if result.Failed > 0 {
-		record.Status = "partial"
+		if result.Cleaned == 0 {
+			record.Status = "failed"
+		} else {
+			record.Status = "partial"
+		}
 	}
 	if _, err := o.history.Save(record); err != nil {
 		log.Printf("Failed to save clean history: %v", err)
@@ -278,8 +301,8 @@ func (o *Orchestrator) SaveQuarantineRecord(r cleaner.QuarantineRecord) error {
 	}
 	id := fmt.Sprintf("%d", time.Now().UnixNano())
 	_, err := o.db.Conn().Exec(
-		"INSERT INTO quarantine (id, original_path, quarantine_path, size_bytes, risk_score, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		id, r.OriginalPath, r.QuarantinePath, r.Size, 0, r.CreatedAt, r.ExpiresAt)
+		"INSERT INTO quarantine (id, original_path, quarantine_path, size_bytes, risk_score, quarantined_at, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		id, r.OriginalPath, r.QuarantinePath, r.Size, r.RiskScore, r.CreatedAt, r.ExpiresAt, r.CreatedAt)
 	return err
 }
 
@@ -287,7 +310,7 @@ func (o *Orchestrator) GetQuarantinedItems() ([]cleaner.QuarantineRecord, error)
 	if o.db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
-	rows, err := o.db.Conn().Query("SELECT original_path, quarantine_path, size_bytes, created_at, expires_at FROM quarantine WHERE expires_at > datetime('now') ORDER BY created_at DESC")
+	rows, err := o.db.Conn().Query("SELECT original_path, quarantine_path, size_bytes, risk_score, created_at, expires_at FROM quarantine WHERE expires_at > datetime('now') ORDER BY created_at DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -296,17 +319,26 @@ func (o *Orchestrator) GetQuarantinedItems() ([]cleaner.QuarantineRecord, error)
 	var items []cleaner.QuarantineRecord
 	for rows.Next() {
 		var r cleaner.QuarantineRecord
-		if err := rows.Scan(&r.OriginalPath, &r.QuarantinePath, &r.Size, &r.CreatedAt, &r.ExpiresAt); err != nil {
+		if err := rows.Scan(&r.OriginalPath, &r.QuarantinePath, &r.Size, &r.RiskScore, &r.CreatedAt, &r.ExpiresAt); err != nil {
+			log.Printf("Warning: skipping corrupt quarantine row: %v", err)
 			continue
 		}
 		items = append(items, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed iterating quarantine rows: %w", err)
 	}
 	return items, nil
 }
 
 func (o *Orchestrator) RestoreQuarantinedItem(quarantinePath, originalPath string) error {
-	if err := cleaner.NewRecovery(nil).RestoreFile(quarantinePath, originalPath); err != nil {
-		// Recovery uses os.Rename which works without QuarantineManager
+	if o.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+	if err := os.MkdirAll(filepath.Dir(originalPath), 0755); err != nil {
+		return fmt.Errorf("failed to create parent directory: %w", err)
+	}
+	if err := os.Rename(quarantinePath, originalPath); err != nil {
 		return err
 	}
 	_, err := o.db.Conn().Exec("DELETE FROM quarantine WHERE quarantine_path = ?", quarantinePath)
@@ -314,6 +346,9 @@ func (o *Orchestrator) RestoreQuarantinedItem(quarantinePath, originalPath strin
 }
 
 func (o *Orchestrator) DeleteQuarantinedItem(quarantinePath string) error {
+	if o.db == nil {
+		return fmt.Errorf("database not initialized")
+	}
 	if err := os.Remove(quarantinePath); err != nil && !os.IsNotExist(err) {
 		return err
 	}
@@ -334,11 +369,15 @@ func (o *Orchestrator) CleanupExpiredQuarantine() error {
 	for rows.Next() {
 		var path string
 		if err := rows.Scan(&path); err != nil {
+			log.Printf("Warning: skipping corrupt quarantine row during cleanup: %v", err)
 			continue
 		}
 		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				log.Printf("Warning: failed to remove expired quarantine file %s: %v", path, err)
-			}
+			log.Printf("Warning: failed to remove expired quarantine file %s: %v", path, err)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed iterating expired quarantine rows: %w", err)
 	}
 	_, err = o.db.Conn().Exec("DELETE FROM quarantine WHERE expires_at <= datetime('now')")
 	return err

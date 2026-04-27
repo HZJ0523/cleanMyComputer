@@ -84,7 +84,7 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 		}
 
 		home, _ := os.UserHomeDir()
-		exportPath := filepath.Join(home, "Desktop", fmt.Sprintf(i18n.T("report.filename"), time.Now().Format("20060102_150405")))
+		exportPath := filepath.Join(home, fmt.Sprintf(i18n.T("report.filename"), time.Now().Format("20060102_150405")))
 		if err := gen.ExportToFile(r, exportPath); err != nil {
 			dialog.ShowError(err, a.window)
 			return

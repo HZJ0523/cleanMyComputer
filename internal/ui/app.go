@@ -51,23 +51,29 @@ func (a *App) Run() {
 	a.state.CleanupExpiredQuarantine()
 	a.restoreScheduler()
 
-	dashboard := a.newDashboard()
-	scannerView := a.newScannerView()
-	confirmView := a.newConfirmView()
-	recoveryView := a.newRecoveryView()
-	historyView := a.newHistoryView()
-	settingsView := a.newSettingsView()
+	a.buildTabs()
+	a.window.ShowAndRun()
+}
+
+func (a *App) buildTabs() {
+	selectedIdx := 0
+	if a.tabs != nil {
+		selectedIdx = a.tabs.SelectedIndex()
+	}
 
 	a.tabs = container.NewAppTabs(
-		container.NewTabItem(i18n.T("tab.dashboard"), dashboard),
-		container.NewTabItem(i18n.T("tab.scan"), scannerView),
-		container.NewTabItem(i18n.T("tab.confirm"), confirmView),
-		container.NewTabItem(i18n.T("tab.recovery"), recoveryView),
-		container.NewTabItem(i18n.T("tab.history"), historyView),
-		container.NewTabItem(i18n.T("tab.settings"), settingsView),
+		container.NewTabItem(i18n.T("tab.dashboard"), a.newDashboard()),
+		container.NewTabItem(i18n.T("tab.scan"), a.newScannerView()),
+		container.NewTabItem(i18n.T("tab.confirm"), a.newConfirmView()),
+		container.NewTabItem(i18n.T("tab.recovery"), a.newRecoveryView()),
+		container.NewTabItem(i18n.T("tab.history"), a.newHistoryView()),
+		container.NewTabItem(i18n.T("tab.settings"), a.newSettingsView()),
 	)
 	a.window.SetContent(a.tabs)
-	a.window.ShowAndRun()
+
+	if selectedIdx > 0 {
+		a.tabs.SelectIndex(selectedIdx)
+	}
 }
 
 func (a *App) selectTab(index int) {

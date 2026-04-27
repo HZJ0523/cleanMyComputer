@@ -2,11 +2,16 @@ package cleaner
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
+
+var allowedCommands = map[string][]string{
+	"Clear-RecycleBin": {"powershell", "-Command", "Clear-RecycleBin -Force"},
+}
 
 type Executor struct {
 	quarantine *QuarantineManager
@@ -22,16 +27,17 @@ type FileItem struct {
 	Path      string
 	Size      int64
 	RiskScore int
+	Type      string // "file" or "command"
 }
 
 type CleanResult struct {
-	Cleaned      []string
-	Quarantined  []string
-	Failed       []string
-	FreedSize    int64
+	Cleaned        []string
+	Quarantined    []string
+	Failed         []string
+	FreedSize      int64
 	QuarantinedSize int64
-	StartTime    time.Time
-	EndTime      time.Time
+	StartTime      time.Time
+	EndTime        time.Time
 }
 
 func NewExecutor(qm *QuarantineManager) *Executor {
@@ -46,7 +52,7 @@ func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, 
 			return result, ctx.Err()
 		default:
 		}
-		action, err := e.cleanFile(file)
+		action, err := e.cleanFile(ctx, file)
 		if err != nil {
 			result.Failed = append(result.Failed, file.Path)
 			continue
@@ -67,12 +73,12 @@ func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, 
 	return result, nil
 }
 
-func (e *Executor) cleanFile(file *FileItem) (string, error) {
+func (e *Executor) cleanFile(ctx context.Context, file *FileItem) (string, error) {
 	if e.dryRun {
 		return "deleted", nil
 	}
-	if !strings.Contains(file.Path, "\\") && !strings.Contains(file.Path, "/") {
-		return "command", e.executeCommand(file.Path)
+	if file.Type == "command" {
+		return "command", e.executeCommand(ctx, file.Path)
 	}
 	if file.RiskScore > 60 {
 		return "quarantined", e.quarantine.Quarantine(file.Path)
@@ -88,7 +94,7 @@ func (e *Executor) deleteWithRetry(path string) error {
 		if err == nil {
 			return nil
 		}
-		if os.IsPermission(err) {
+		if os.IsNotExist(err) || os.IsPermission(err) {
 			return err
 		}
 		time.Sleep(100 * time.Millisecond)
@@ -96,9 +102,15 @@ func (e *Executor) deleteWithRetry(path string) error {
 	return os.Remove(path)
 }
 
-func (e *Executor) executeCommand(cmd string) error {
-	if cmd == "Clear-RecycleBin" {
-		return exec.Command("powershell", "-Command", "Clear-RecycleBin -Force").Run()
+func (e *Executor) executeCommand(ctx context.Context, cmd string) error {
+	args, ok := allowedCommands[cmd]
+	if !ok {
+		return fmt.Errorf("unrecognized command: %q", cmd)
 	}
-	return exec.Command("cmd", "/C", cmd).Run()
+	return exec.CommandContext(ctx, args[0], args[1:]...).Run()
+}
+
+// IsCommandTarget returns true if the given path looks like a command rather than a file path.
+func IsCommandTarget(path string) bool {
+	return !strings.Contains(path, "\\") && !strings.Contains(path, "/")
 }

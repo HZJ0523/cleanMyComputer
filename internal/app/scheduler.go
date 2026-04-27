@@ -10,6 +10,7 @@ type Scheduler struct {
 	mu        sync.Mutex
 	orch      *Orchestrator
 	stopCh    chan struct{}
+	done      chan struct{}
 	running   bool
 	interval  time.Duration
 	scanLevel int
@@ -43,6 +44,7 @@ func (s *Scheduler) Start() {
 	}
 	s.running = true
 	s.stopCh = make(chan struct{})
+	s.done = make(chan struct{})
 	interval := s.interval
 	s.mu.Unlock()
 
@@ -52,12 +54,19 @@ func (s *Scheduler) Start() {
 
 func (s *Scheduler) Stop() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if !s.running {
+		s.mu.Unlock()
 		return
 	}
-	close(s.stopCh)
+	ch := s.stopCh
 	s.running = false
+	s.mu.Unlock()
+
+	close(ch)
+
+	if s.done != nil {
+		<-s.done
+	}
 	log.Printf("[Scheduler] stopped")
 }
 
@@ -68,6 +77,7 @@ func (s *Scheduler) Running() bool {
 }
 
 func (s *Scheduler) run(interval time.Duration) {
+	defer close(s.done)
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 

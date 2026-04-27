@@ -3,6 +3,7 @@ package rule
 import (
 	"context"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/hzj0523/cleanMyComputer/internal/models"
@@ -27,9 +28,7 @@ func (e *Engine) LoadRules(ctx context.Context, level int) error {
 		return err
 	}
 
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
+	var valid []*models.CleanRule
 	for _, rule := range rules {
 		select {
 		case <-ctx.Done():
@@ -37,11 +36,17 @@ func (e *Engine) LoadRules(ctx context.Context, level int) error {
 		default:
 		}
 		if err := rule.Validate(); err == nil {
-			e.rules[rule.ID] = rule
+			valid = append(valid, rule)
 		} else {
 			log.Printf("Warning: skipping invalid rule %s: %v", rule.ID, err)
 		}
 	}
+
+	e.mu.Lock()
+	for _, rule := range valid {
+		e.rules[rule.ID] = rule
+	}
+	e.mu.Unlock()
 	return nil
 }
 
@@ -54,5 +59,8 @@ func (e *Engine) GetEnabledRules(level int) []*models.CleanRule {
 			enabled = append(enabled, rule)
 		}
 	}
+	sort.Slice(enabled, func(i, j int) bool {
+		return enabled[i].ID < enabled[j].ID
+	})
 	return enabled
 }

@@ -2,9 +2,11 @@ package analyzer
 
 import (
 	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 )
 
@@ -20,7 +22,7 @@ type DuplicateFinder struct {
 
 func NewDuplicateFinder(minSize int64) *DuplicateFinder {
 	if minSize <= 0 {
-		minSize = 1024 // 1KB minimum
+		minSize = 1024
 	}
 	return &DuplicateFinder{minSize: minSize}
 }
@@ -28,8 +30,11 @@ func NewDuplicateFinder(minSize int64) *DuplicateFinder {
 func (d *DuplicateFinder) FindDuplicates(root string) ([]DuplicateGroup, error) {
 	sizeMap := make(map[int64][]string)
 
-	filepath.WalkDir(root, func(path string, info os.DirEntry, err error) error {
-		if err != nil || info.IsDir() {
+	err := filepath.WalkDir(root, func(path string, info os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
 			return nil
 		}
 		fi, err := info.Info()
@@ -39,6 +44,9 @@ func (d *DuplicateFinder) FindDuplicates(root string) ([]DuplicateGroup, error) 
 		sizeMap[fi.Size()] = append(sizeMap[fi.Size()], path)
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	var candidates [][]string
 	for _, paths := range sizeMap {
@@ -50,12 +58,14 @@ func (d *DuplicateFinder) FindDuplicates(root string) ([]DuplicateGroup, error) 
 	hashMap := make(map[string][]string)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.NumCPU()*4)
 
 	for _, group := range candidates {
 		for _, path := range group {
+			sem <- struct{}{}
 			wg.Add(1)
 			go func(p string) {
-				defer wg.Done()
+				defer func() { <-sem; wg.Done() }()
 				h, err := fileHash(p)
 				if err != nil {
 					return
@@ -91,5 +101,5 @@ func fileHash(path string) (string, error) {
 	if _, err := io.Copy(h, f); err != nil {
 		return "", err
 	}
-	return string(h.Sum(nil)), nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }

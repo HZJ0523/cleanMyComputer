@@ -16,63 +16,44 @@ import (
 func (a *App) newDashboard() fyne.CanvasObject {
 	title := widget.NewLabelWithStyle(i18n.T("app.title"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 
-	var diskInfo string
-	homedir, _ := os.UserHomeDir()
-	platform := windows.NewPlatform()
-	if usage, err := platform.GetDiskUsage(homedir); err == nil {
-		diskInfo = fmt.Sprintf(i18n.T("label.disk_usage"), usage.UsedGB, usage.TotalGB, usage.FreeGB)
-	}
+	diskLabel := widget.NewLabel("")
+	go func() {
+		homedir, _ := os.UserHomeDir()
+		platform := windows.NewPlatform()
+		if usage, err := platform.GetDiskUsage(homedir); err == nil {
+			text := fmt.Sprintf(i18n.T("label.disk_usage"), usage.UsedGB, usage.TotalGB, usage.FreeGB)
+			fyne.Do(func() { diskLabel.SetText(text) })
+		} else {
+			fyne.Do(func() { diskLabel.SetText("") })
+		}
+	}()
 
-	diskLabel := widget.NewLabel(diskInfo)
 	statusLabel := widget.NewLabel(i18n.T("label.select_mode"))
 	progressBar := widget.NewProgressBar()
 	progressBar.Hide()
 
-	quickScan := widget.NewButton(i18n.T("btn.quick_scan"), func() {
+	doScan := func(level int) {
 		statusLabel.SetText(i18n.T("label.scanning"))
 		progressBar.Show()
 		go func() {
-			err := a.state.RunScan(1)
-			if err != nil {
-				fyne.Do(func() {
-					progressBar.Hide()
-					dialog.ShowError(err, a.window)
-				})
-				return
-			}
-			count := a.state.GetScanItemCount()
+			err := a.state.RunScan(level)
 			fyne.Do(func() {
-				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				progressBar.Hide()
+				if err != nil {
+					dialog.ShowError(err, a.window)
+					return
+				}
+				count := a.state.GetScanItemCount()
+				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				dialog.ShowInformation(i18n.T("label.scan_complete"),
 					fmt.Sprintf("%d items", count), a.window)
-				a.tabs.SelectIndex(1)
+				a.selectTab(1)
 			})
 		}()
-	})
+	}
 
-	fullScan := widget.NewButton(i18n.T("btn.full_scan"), func() {
-		statusLabel.SetText(i18n.T("label.scanning"))
-		progressBar.Show()
-		go func() {
-			err := a.state.RunScan(3)
-			if err != nil {
-				fyne.Do(func() {
-					progressBar.Hide()
-					dialog.ShowError(err, a.window)
-				})
-				return
-			}
-			count := a.state.GetScanItemCount()
-			fyne.Do(func() {
-				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
-				progressBar.Hide()
-				dialog.ShowInformation(i18n.T("label.scan_complete"),
-					fmt.Sprintf("%d items", count), a.window)
-				a.tabs.SelectIndex(1)
-			})
-		}()
-	})
+	quickScan := widget.NewButton(i18n.T("btn.quick_scan"), func() { doScan(1) })
+	fullScan := widget.NewButton(i18n.T("btn.full_scan"), func() { doScan(3) })
 
 	return container.NewVBox(
 		title,
