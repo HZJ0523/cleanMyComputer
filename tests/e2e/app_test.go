@@ -1,13 +1,11 @@
 package e2e
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/hzj0523/cleanMyComputer/internal/app"
-	"github.com/hzj0523/cleanMyComputer/internal/core/cleaner"
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
 
@@ -65,58 +63,6 @@ func TestOrchestratorConfigRoundTrip(t *testing.T) {
 	}
 	if val != "test_value" {
 		t.Errorf("got %q, want %q", val, "test_value")
-	}
-}
-
-func TestOrchestratorQuarantineLifecycle(t *testing.T) {
-	o := app.NewOrchestrator()
-
-	tmpDir := t.TempDir()
-	dbPath := filepath.Join(tmpDir, "test.db")
-	if err := o.InitDB(dbPath); err != nil {
-		t.Fatalf("InitDB: %v", err)
-	}
-	defer o.CloseDB()
-
-	qDir := filepath.Join(tmpDir, "quarantine")
-	os.MkdirAll(qDir, 0755)
-	qFile := filepath.Join(qDir, "test.dat")
-	os.WriteFile(qFile, []byte("quarantined"), 0644)
-
-	now := time.Now()
-	record := cleaner.QuarantineRecord{
-		OriginalPath:   "/fake/path/file.txt",
-		QuarantinePath: qFile,
-		Size:           12,
-		CreatedAt:      now,
-		ExpiresAt:      now.Add(24 * time.Hour),
-	}
-
-	if err := o.SaveQuarantineRecord(record); err != nil {
-		t.Fatalf("SaveQuarantineRecord: %v", err)
-	}
-
-	items, err := o.GetQuarantinedItems()
-	if err != nil {
-		t.Fatalf("GetQuarantinedItems: %v", err)
-	}
-	if len(items) != 1 {
-		t.Fatalf("expected 1 quarantined item, got %d", len(items))
-	}
-	if items[0].OriginalPath != record.OriginalPath {
-		t.Errorf("OriginalPath = %s, want %s", items[0].OriginalPath, record.OriginalPath)
-	}
-
-	if err := o.DeleteQuarantinedItem(qFile); err != nil {
-		t.Fatalf("DeleteQuarantinedItem: %v", err)
-	}
-
-	items, err = o.GetQuarantinedItems()
-	if err != nil {
-		t.Fatalf("GetQuarantinedItems after delete: %v", err)
-	}
-	if len(items) != 0 {
-		t.Errorf("expected 0 quarantined items after delete, got %d", len(items))
 	}
 }
 

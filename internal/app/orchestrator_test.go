@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/hzj0523/cleanMyComputer/internal/core/cleaner"
 )
 
 func TestNewOrchestrator(t *testing.T) {
@@ -70,46 +68,6 @@ func TestGetHistoryWithoutDB(t *testing.T) {
 	}
 }
 
-func TestCleanupExpiredQuarantineWithoutDB(t *testing.T) {
-	o := NewOrchestrator()
-	err := o.CleanupExpiredQuarantine()
-	if err != nil {
-		t.Errorf("expected nil error without DB, got %v", err)
-	}
-}
-
-func TestSaveQuarantineRecordWithoutDB(t *testing.T) {
-	o := NewOrchestrator()
-	err := o.SaveQuarantineRecord(cleaner.QuarantineRecord{})
-	if err == nil {
-		t.Error("expected error when DB not initialized")
-	}
-}
-
-func TestGetQuarantinedItemsWithoutDB(t *testing.T) {
-	o := NewOrchestrator()
-	_, err := o.GetQuarantinedItems()
-	if err == nil {
-		t.Error("expected error when DB not initialized")
-	}
-}
-
-func TestRestoreQuarantinedItemWithoutDB(t *testing.T) {
-	o := NewOrchestrator()
-	err := o.RestoreQuarantinedItem("/a", "/b")
-	if err == nil {
-		t.Error("expected error when DB not initialized")
-	}
-}
-
-func TestDeleteQuarantinedItemWithoutDB(t *testing.T) {
-	o := NewOrchestrator()
-	err := o.DeleteQuarantinedItem("/a")
-	if err == nil {
-		t.Error("expected error when DB not initialized")
-	}
-}
-
 func TestRunScanTwiceConcurrent(t *testing.T) {
 	o := NewOrchestrator()
 	tmpDir := t.TempDir()
@@ -126,7 +84,6 @@ func TestRunScanTwiceConcurrent(t *testing.T) {
 		firstDone <- o.RunScan(1)
 	}()
 
-	// Give a moment for the first goroutine to start scanning
 	time.Sleep(50 * time.Millisecond)
 
 	go func() {
@@ -139,8 +96,6 @@ func TestRunScanTwiceConcurrent(t *testing.T) {
 	if err1 != nil {
 		t.Logf("first scan: %v (may fail due to no rules dir)", err1)
 	}
-	// The second scan should get ErrScanInProgress if first was still running,
-	// or may also fail normally if first already finished
 	if err2 == ErrScanInProgress {
 		t.Log("second scan correctly blocked by first scan")
 	}

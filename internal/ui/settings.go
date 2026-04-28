@@ -39,13 +39,18 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 			check := hbox.Objects[0].(*widget.Check)
 			label := hbox.Objects[1].(*widget.Label)
 
-			check.SetChecked(rule.Enabled)
 			ruleID := rule.ID
+			ruleEnabled := rule.Enabled
+
+			// Set OnChanged BEFORE SetChecked to avoid triggering
+			// a spurious save when Fyne recycles the widget
 			check.OnChanged = func(checked bool) {
 				if err := a.state.SetRuleEnabled(ruleID, checked); err != nil {
 					dialog.ShowError(err, a.window)
 				}
 			}
+			check.SetChecked(ruleEnabled)
+
 			levelLabel := i18n.T("label.level_safe")
 			if rule.Level == 2 {
 				levelLabel = i18n.T("label.level_deep")
@@ -53,8 +58,8 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 				levelLabel = i18n.T("label.level_advanced")
 			}
 			ruleName := i18n.TDefault("rule."+rule.ID+".name", rule.Name)
-				ruleDesc := i18n.TDefault("rule."+rule.ID+".desc", rule.Description)
-				label.SetText(fmt.Sprintf("%s [%s] %s", ruleName, levelLabel, ruleDesc))
+			ruleDesc := i18n.TDefault("rule."+rule.ID+".desc", rule.Description)
+			label.SetText(fmt.Sprintf("%s [%s] %s", ruleName, levelLabel, ruleDesc))
 		},
 	)
 

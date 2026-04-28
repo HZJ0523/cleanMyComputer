@@ -48,7 +48,6 @@ func (a *App) Run() {
 		}
 	}()
 
-	a.state.CleanupExpiredQuarantine()
 	a.restoreScheduler()
 
 	a.buildTabs()
@@ -57,7 +56,7 @@ func (a *App) Run() {
 
 func (a *App) buildTabs() {
 	selectedIdx := 0
-	if a.tabs != nil {
+	if a.tabs != nil && a.tabs.SelectedIndex() < 5 {
 		selectedIdx = a.tabs.SelectedIndex()
 	}
 
@@ -65,7 +64,6 @@ func (a *App) buildTabs() {
 		container.NewTabItem(i18n.T("tab.dashboard"), a.newDashboard()),
 		container.NewTabItem(i18n.T("tab.scan"), a.newScannerView()),
 		container.NewTabItem(i18n.T("tab.confirm"), a.newConfirmView()),
-		container.NewTabItem(i18n.T("tab.recovery"), a.newRecoveryView()),
 		container.NewTabItem(i18n.T("tab.history"), a.newHistoryView()),
 		container.NewTabItem(i18n.T("tab.settings"), a.newSettingsView()),
 	)

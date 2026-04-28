@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -119,7 +117,25 @@ func (o *Orchestrator) SetRuleEnabled(ruleID string, enabled bool) error {
 }
 
 func (o *Orchestrator) GetAllRules() []*models.CleanRule {
-	return o.engine.GetEnabledRules(3)
+	ctx := context.Background()
+	o.engine.LoadRules(ctx, 3)
+
+	rules := o.engine.GetAllRules()
+
+	if o.db != nil {
+		status, err := o.GetRuleStatus()
+		if err != nil {
+			log.Printf("Warning: failed to load rule status for display: %v", err)
+			return rules
+		}
+		for _, rule := range rules {
+			if enabled, ok := status[rule.ID]; ok {
+				rule.Enabled = enabled
+			}
+		}
+	}
+
+	return rules
 }
 
 func (o *Orchestrator) GetScanItemsSafe() []*models.ScanItem {
@@ -212,24 +228,6 @@ func (o *Orchestrator) RunClean() (CleanSummary, error) {
 		return CleanSummary{}, nil
 	}
 
-	localAppData := os.Getenv("LOCALAPPDATA")
-	if localAppData == "" {
-		localAppData = os.TempDir()
-	}
-	qDir := filepath.Join(localAppData, "CleanMyComputer", "quarantine")
-	qm, err := cleaner.NewQuarantineManager(qDir)
-	if err != nil {
-		return CleanSummary{}, fmt.Errorf("failed to create quarantine manager: %w", err)
-	}
-
-	qm.OnQuarantine = func(record cleaner.QuarantineRecord) error {
-		if err := o.SaveQuarantineRecord(record); err != nil {
-			log.Printf("Failed to save quarantine record: %v", err)
-			return err
-		}
-		return nil
-	}
-
 	var files []*cleaner.FileItem
 	for _, item := range items {
 		files = append(files, &cleaner.FileItem{
@@ -241,8 +239,8 @@ func (o *Orchestrator) RunClean() (CleanSummary, error) {
 	}
 
 	startTime := time.Now()
-	task := &cleaner.CleanTask{Files: files, TotalSize: 0}
-	executor := cleaner.NewExecutor(qm)
+	task := &cleaner.CleanTask{Files: files}
+	executor := cleaner.NewExecutor()
 
 	result, err := executor.Execute(context.Background(), task)
 	if err != nil {
@@ -293,94 +291,6 @@ func (o *Orchestrator) GetHistory() ([]*models.CleanRecord, error) {
 		return nil, fmt.Errorf("database not initialized")
 	}
 	return o.history.GetAll()
-}
-
-func (o *Orchestrator) SaveQuarantineRecord(r cleaner.QuarantineRecord) error {
-	if o.db == nil {
-		return fmt.Errorf("database not initialized")
-	}
-	id := fmt.Sprintf("%d", time.Now().UnixNano())
-	_, err := o.db.Conn().Exec(
-		"INSERT INTO quarantine (id, original_path, quarantine_path, size_bytes, risk_score, quarantined_at, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-		id, r.OriginalPath, r.QuarantinePath, r.Size, r.RiskScore, r.CreatedAt, r.ExpiresAt, r.CreatedAt)
-	return err
-}
-
-func (o *Orchestrator) GetQuarantinedItems() ([]cleaner.QuarantineRecord, error) {
-	if o.db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-	rows, err := o.db.Conn().Query("SELECT original_path, quarantine_path, size_bytes, risk_score, created_at, expires_at FROM quarantine WHERE expires_at > datetime('now') ORDER BY created_at DESC")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var items []cleaner.QuarantineRecord
-	for rows.Next() {
-		var r cleaner.QuarantineRecord
-		if err := rows.Scan(&r.OriginalPath, &r.QuarantinePath, &r.Size, &r.RiskScore, &r.CreatedAt, &r.ExpiresAt); err != nil {
-			log.Printf("Warning: skipping corrupt quarantine row: %v", err)
-			continue
-		}
-		items = append(items, r)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed iterating quarantine rows: %w", err)
-	}
-	return items, nil
-}
-
-func (o *Orchestrator) RestoreQuarantinedItem(quarantinePath, originalPath string) error {
-	if o.db == nil {
-		return fmt.Errorf("database not initialized")
-	}
-	if err := os.MkdirAll(filepath.Dir(originalPath), 0755); err != nil {
-		return fmt.Errorf("failed to create parent directory: %w", err)
-	}
-	if err := os.Rename(quarantinePath, originalPath); err != nil {
-		return err
-	}
-	_, err := o.db.Conn().Exec("DELETE FROM quarantine WHERE quarantine_path = ?", quarantinePath)
-	return err
-}
-
-func (o *Orchestrator) DeleteQuarantinedItem(quarantinePath string) error {
-	if o.db == nil {
-		return fmt.Errorf("database not initialized")
-	}
-	if err := os.Remove(quarantinePath); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	_, err := o.db.Conn().Exec("DELETE FROM quarantine WHERE quarantine_path = ?", quarantinePath)
-	return err
-}
-
-func (o *Orchestrator) CleanupExpiredQuarantine() error {
-	if o.db == nil {
-		return nil
-	}
-	rows, err := o.db.Conn().Query("SELECT quarantine_path FROM quarantine WHERE expires_at <= datetime('now')")
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var path string
-		if err := rows.Scan(&path); err != nil {
-			log.Printf("Warning: skipping corrupt quarantine row during cleanup: %v", err)
-			continue
-		}
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			log.Printf("Warning: failed to remove expired quarantine file %s: %v", path, err)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("failed iterating expired quarantine rows: %w", err)
-	}
-	_, err = o.db.Conn().Exec("DELETE FROM quarantine WHERE expires_at <= datetime('now')")
-	return err
 }
 
 func (o *Orchestrator) FindDuplicateFiles(root string) ([]analyzer.DuplicateGroup, error) {

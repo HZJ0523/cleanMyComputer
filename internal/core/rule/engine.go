@@ -64,3 +64,16 @@ func (e *Engine) GetEnabledRules(level int) []*models.CleanRule {
 	})
 	return enabled
 }
+
+func (e *Engine) GetAllRules() []*models.CleanRule {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	var all []*models.CleanRule
+	for _, rule := range e.rules {
+		all = append(all, rule)
+	}
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].ID < all[j].ID
+	})
+	return all
+}

@@ -36,15 +36,9 @@ func (c *Config) Set(key, value string) error {
 
 func (c *Config) GetConfig() *models.Config {
 	cfg := &models.Config{
-		QuarantineRetentionHours: 24,
-		OldFileDays:              30,
-		ScanWorkers:              4,
-		Language:                 "zh-CN",
-	}
-	if v, err := c.Get("quarantine_retention_hours"); err == nil && v != "" {
-		if n, e := parseInt(v); e == nil && n > 0 {
-			cfg.QuarantineRetentionHours = n
-		}
+		OldFileDays: 30,
+		ScanWorkers: 4,
+		Language:    "zh-CN",
 	}
 	if v, err := c.Get("auto_clean_enabled"); err == nil && v == "true" {
 		cfg.AutoCleanEnabled = true

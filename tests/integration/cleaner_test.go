@@ -18,7 +18,6 @@ func TestFullCleanWorkflow(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Step 1: Scan
 	s := scanner.NewScanner(2)
 	targets := []models.Target{
 		{Type: "folder", Path: tmpDir, Pattern: "*.txt", Recursive: false},
@@ -33,9 +32,7 @@ func TestFullCleanWorkflow(t *testing.T) {
 		t.Fatal("Expected scan results")
 	}
 
-	// Step 2: Clean
-	qm, _ := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
-	executor := cleaner.NewExecutor(qm)
+	executor := cleaner.NewExecutor()
 
 	task := &cleaner.CleanTask{
 		Files: []*cleaner.FileItem{
@@ -51,36 +48,7 @@ func TestFullCleanWorkflow(t *testing.T) {
 	if cleanResult.FreedSize != 4 {
 		t.Errorf("FreedSize = %d, want 4", cleanResult.FreedSize)
 	}
-}
-
-func TestHighRiskWorkflow(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "important.sys")
-	os.WriteFile(testFile, []byte("important"), 0644)
-
-	ctx := context.Background()
-
-	// Clean with high risk score - should go to quarantine
-	qm, _ := cleaner.NewQuarantineManager(filepath.Join(tmpDir, "quarantine"))
-	executor := cleaner.NewExecutor(qm)
-
-	task := &cleaner.CleanTask{
-		Files: []*cleaner.FileItem{
-			{Path: testFile, Size: 9, RiskScore: 80},
-		},
-	}
-
-	result, err := executor.Execute(ctx, task)
-	if err != nil {
-		t.Fatalf("Execute() error = %v", err)
-	}
-
-	if len(result.Cleaned) != 1 {
-		t.Errorf("Expected 1 cleaned, got %d", len(result.Cleaned))
-	}
-
-	// File should be in quarantine, not deleted
 	if _, err := os.Stat(testFile); !os.IsNotExist(err) {
-		t.Error("Expected original file to be moved")
+		t.Error("expected file to be deleted")
 	}
 }

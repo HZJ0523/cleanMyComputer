@@ -51,35 +51,10 @@ func (db *DB) Conn() *sql.DB {
 }
 
 func (db *DB) migrate() error {
-	return db.migrateQuarantine()
+	return db.migrateHistory()
 }
 
-func (db *DB) migrateQuarantine() error {
-	columns := []struct {
-		name string
-		sql  string
-	}{
-		{"quarantined_at", "ALTER TABLE quarantine ADD COLUMN quarantined_at DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00'"},
-		{"restored", "ALTER TABLE quarantine ADD COLUMN restored BOOLEAN DEFAULT 0"},
-		{"restored_at", "ALTER TABLE quarantine ADD COLUMN restored_at DATETIME"},
-		{"created_at", "ALTER TABLE quarantine ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP"},
-		{"risk_score", "ALTER TABLE quarantine ADD COLUMN risk_score INTEGER NOT NULL DEFAULT 0"},
-	}
-
-	existing, err := db.getColumns("quarantine")
-	if err != nil {
-		return err
-	}
-
-	for _, col := range columns {
-		if !existing[col.name] {
-			if _, err := db.conn.Exec(col.sql); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Migrate clean_history: add failed_count if missing
+func (db *DB) migrateHistory() error {
 	histCols, err := db.getColumns("clean_history")
 	if err != nil {
 		return err
@@ -89,11 +64,6 @@ func (db *DB) migrateQuarantine() error {
 			return err
 		}
 	}
-
-	// Ensure indexes exist (safe to re-run)
-	db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_quarantine_expires ON quarantine(expires_at)")
-	db.conn.Exec("CREATE INDEX IF NOT EXISTS idx_quarantine_restored ON quarantine(restored)")
-
 	return nil
 }
 

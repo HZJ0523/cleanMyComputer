@@ -14,8 +14,7 @@ var allowedCommands = map[string][]string{
 }
 
 type Executor struct {
-	quarantine *QuarantineManager
-	dryRun     bool
+	dryRun bool
 }
 
 type CleanTask struct {
@@ -27,21 +26,19 @@ type FileItem struct {
 	Path      string
 	Size      int64
 	RiskScore int
-	Type      string // "file" or "command"
+	Type      string
 }
 
 type CleanResult struct {
-	Cleaned        []string
-	Quarantined    []string
-	Failed         []string
-	FreedSize      int64
-	QuarantinedSize int64
-	StartTime      time.Time
-	EndTime        time.Time
+	Cleaned   []string
+	Failed    []string
+	FreedSize int64
+	StartTime time.Time
+	EndTime   time.Time
 }
 
-func NewExecutor(qm *QuarantineManager) *Executor {
-	return &Executor{quarantine: qm, dryRun: false}
+func NewExecutor() *Executor {
+	return &Executor{dryRun: false}
 }
 
 func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, error) {
@@ -52,38 +49,25 @@ func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, 
 			return result, ctx.Err()
 		default:
 		}
-		action, err := e.cleanFile(ctx, file)
-		if err != nil {
+		if err := e.cleanFile(ctx, file); err != nil {
 			result.Failed = append(result.Failed, file.Path)
 			continue
 		}
-		switch action {
-		case "deleted":
-			result.Cleaned = append(result.Cleaned, file.Path)
-			result.FreedSize += file.Size
-		case "quarantined":
-			result.Quarantined = append(result.Quarantined, file.Path)
-			result.QuarantinedSize += file.Size
-			result.Cleaned = append(result.Cleaned, file.Path)
-		case "command":
-			result.Cleaned = append(result.Cleaned, file.Path)
-		}
+		result.Cleaned = append(result.Cleaned, file.Path)
+		result.FreedSize += file.Size
 	}
 	result.EndTime = time.Now()
 	return result, nil
 }
 
-func (e *Executor) cleanFile(ctx context.Context, file *FileItem) (string, error) {
+func (e *Executor) cleanFile(ctx context.Context, file *FileItem) error {
 	if e.dryRun {
-		return "deleted", nil
+		return nil
 	}
 	if file.Type == "command" {
-		return "command", e.executeCommand(ctx, file.Path)
+		return e.executeCommand(ctx, file.Path)
 	}
-	if file.RiskScore > 60 {
-		return "quarantined", e.quarantine.Quarantine(file.Path)
-	}
-	return "deleted", e.deleteWithRetry(file.Path)
+	return e.deleteWithRetry(file.Path)
 }
 
 const maxRetries = 2
@@ -110,7 +94,6 @@ func (e *Executor) executeCommand(ctx context.Context, cmd string) error {
 	return exec.CommandContext(ctx, args[0], args[1:]...).Run()
 }
 
-// IsCommandTarget returns true if the given path looks like a command rather than a file path.
 func IsCommandTarget(path string) bool {
 	return !strings.Contains(path, "\\") && !strings.Contains(path, "/")
 }

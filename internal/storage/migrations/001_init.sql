@@ -29,22 +29,6 @@ CREATE TABLE IF NOT EXISTS clean_details (
 CREATE INDEX IF NOT EXISTS idx_clean_details_history ON clean_details(history_id);
 CREATE INDEX IF NOT EXISTS idx_clean_details_rule ON clean_details(rule_id);
 
-CREATE TABLE IF NOT EXISTS quarantine (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    original_path TEXT NOT NULL,
-    quarantine_path TEXT NOT NULL,
-    size_bytes INTEGER NOT NULL DEFAULT 0,
-    risk_score INTEGER NOT NULL DEFAULT 0,
-    quarantined_at DATETIME NOT NULL DEFAULT '2000-01-01 00:00:00',
-    expires_at DATETIME NOT NULL,
-    restored BOOLEAN DEFAULT 0,
-    restored_at DATETIME,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_quarantine_expires ON quarantine(expires_at);
-CREATE INDEX IF NOT EXISTS idx_quarantine_restored ON quarantine(restored);
-
 CREATE TABLE IF NOT EXISTS user_config (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
