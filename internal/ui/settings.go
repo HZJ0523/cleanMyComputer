@@ -31,6 +31,8 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 		})
 	}
 
+	var suppressRuleCallback bool
+
 	ruleList := widget.NewList(
 		func() int {
 			return len(cachedRules)
@@ -51,11 +53,18 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 			ruleEnabled := rule.Enabled
 
 			check.OnChanged = func(checked bool) {
+				if suppressRuleCallback {
+					return
+				}
 				if err := a.state.SetRuleEnabled(ruleID, checked); err != nil {
 					dialog.ShowError(err, a.window)
+					return
 				}
+				rule.Enabled = checked
 			}
+			suppressRuleCallback = true
 			check.SetChecked(ruleEnabled)
+			suppressRuleCallback = false
 
 			levelLabel := i18n.T("label.level_safe")
 			if rule.Level == 2 {
