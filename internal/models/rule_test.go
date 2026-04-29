@@ -15,7 +15,6 @@ func TestCleanRule_Validate(t *testing.T) {
 			rule: CleanRule{
 				ID:          "test_rule",
 				Name:        "Test Rule",
-				Category:    "system",
 				Level:       1,
 				Description: "Test description",
 				RiskScore:   10,
@@ -26,19 +25,17 @@ func TestCleanRule_Validate(t *testing.T) {
 		{
 			name: "missing ID",
 			rule: CleanRule{
-				Name:     "Test Rule",
-				Category: "system",
-				Level:    1,
+				Name:  "Test Rule",
+				Level: 1,
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid level",
 			rule: CleanRule{
-				ID:       "test_rule",
-				Name:     "Test Rule",
-				Category: "system",
-				Level:    99,
+				ID:    "test_rule",
+				Name:  "Test Rule",
+				Level: 99,
 			},
 			wantErr: true,
 		},

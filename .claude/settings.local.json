@@ -37,7 +37,14 @@
       "Bash(rm \"C:/Users/HZJ/Desktop/cleanMyComputer/internal/ui/components/risk_badge.go\")",
       "Bash(git reset *)",
       "Bash(go test *)",
-      "Bash(echo \"EXIT=$?\")"
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(export PATH=\"$PATH:/d/Program Files/Go/bin:/c/Users/HZJ/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin\")",
+      "Bash(go build *)",
+      "Bash(xxd internal/ui/scanner.go)",
+      "Bash(export PATH=\"$PATH:/d/Program Files/Go/bin\")",
+      "Bash(cat)",
+      "Bash(python /tmp/platform_fix.py)",
+      "Bash(python *)"
     ]
   }
 }

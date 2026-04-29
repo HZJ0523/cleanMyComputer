@@ -13,8 +13,7 @@ import (
 var winEnvRe = regexp.MustCompile(`%([^%]+)%`)
 
 func expandPath(path string) string {
-	expanded := os.ExpandEnv(path)
-	expanded = winEnvRe.ReplaceAllStringFunc(expanded, func(match string) string {
+	expanded := winEnvRe.ReplaceAllStringFunc(path, func(match string) string {
 		name := match[1 : len(match)-1]
 		return os.Getenv(name)
 	})
@@ -28,13 +27,28 @@ func isOldEnough(modTime time.Time, daysOld int) bool {
 	return time.Since(modTime) >= time.Duration(daysOld)*24*time.Hour
 }
 
-type Scanner struct {
-	workers int
-	filter  *Filter
+func calcDirSize(path string) int64 {
+	var size int64
+	filepath.WalkDir(path, func(_ string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if !d.IsDir() {
+			if info, err := d.Info(); err == nil {
+				size += info.Size()
+			}
+		}
+		return nil
+	})
+	return size
 }
 
-func NewScanner(workers int) *Scanner {
-	return &Scanner{workers: workers, filter: NewFilter()}
+type Scanner struct {
+	filter *Filter
+}
+
+func NewScanner() *Scanner {
+	return &Scanner{filter: NewFilter()}
 }
 
 func (s *Scanner) ScanRule(ctx context.Context, rule *models.CleanRule) ([]*models.ScanItem, error) {
@@ -77,7 +91,7 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 		if maxDepth <= 0 {
 			maxDepth = 10
 		}
-		filepath.WalkDir(expandedPath, func(path string, d os.DirEntry, err error) error {
+		err := filepath.WalkDir(expandedPath, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return nil
 			}
@@ -105,9 +119,36 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			}
 
 			if d.IsDir() {
+				// Check if directory name matches a specific pattern
+				if target.Pattern != "" && target.Pattern != "*" {
+					matched, _ := filepath.Match(target.Pattern, d.Name())
+					if matched {
+						excluded := false
+						for _, exclude := range target.ExcludeList {
+							if m, _ := filepath.Match(exclude, d.Name()); m {
+								excluded = true
+								break
+							}
+						}
+						if !excluded && s.filter.ShouldInclude(path) {
+							info, ferr := d.Info()
+							if ferr == nil && isOldEnough(info.ModTime(), target.DaysOld) {
+								results = append(results, &models.ScanItem{
+									Path:    path,
+									Size:    calcDirSize(path),
+									ModTime: info.ModTime(),
+									RuleID:  ruleID,
+									Type:    "directory",
+								})
+							}
+						}
+						return filepath.SkipDir
+					}
+				}
 				return nil
 			}
 
+			// File handling
 			if target.Pattern != "" && target.Pattern != "*" {
 				matched, _ := filepath.Match(target.Pattern, d.Name())
 				if !matched {
@@ -142,6 +183,9 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 			})
 			return nil
 		})
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		matches, err := filepath.Glob(filepath.Join(expandedPath, target.Pattern))
 		if err != nil {
@@ -149,7 +193,29 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 		}
 		for _, match := range matches {
 			info, err := os.Stat(match)
-			if err != nil || info.IsDir() {
+			if err != nil {
+				continue
+			}
+			if info.IsDir() {
+				// Only record directories for specific patterns (not * or empty)
+				if target.Pattern != "" && target.Pattern != "*" {
+					excluded := false
+					for _, exclude := range target.ExcludeList {
+						if m, _ := filepath.Match(exclude, filepath.Base(match)); m {
+							excluded = true
+							break
+						}
+					}
+					if !excluded && s.filter.ShouldInclude(match) && isOldEnough(info.ModTime(), target.DaysOld) {
+						results = append(results, &models.ScanItem{
+							Path:    match,
+							Size:    calcDirSize(match),
+							ModTime: info.ModTime(),
+							RuleID:  ruleID,
+							Type:    "directory",
+						})
+					}
+				}
 				continue
 			}
 			if !s.filter.ShouldInclude(match) {

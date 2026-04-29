@@ -14,11 +14,12 @@ import (
 )
 
 type App struct {
-	fyneApp   fyne.App
-	window    fyne.Window
-	state     *AppState
-	tabs      *container.AppTabs
-	scheduler *scheduler
+	fyneApp     fyne.App
+	window      fyne.Window
+	state       *AppState
+	tabs        *container.AppTabs
+	scheduler   *scheduler
+	scannerPage *scannerPage
 }
 
 func NewApp() *App {
@@ -56,18 +57,22 @@ func (a *App) Run() {
 
 func (a *App) buildTabs() {
 	selectedIdx := 0
-	if a.tabs != nil && a.tabs.SelectedIndex() < 5 {
+	if a.tabs != nil && a.tabs.SelectedIndex() < 4 {
 		selectedIdx = a.tabs.SelectedIndex()
 	}
 
+	a.scannerPage = newScannerPage(a)
+	scanView := a.scannerPage.buildUI()
+
 	a.tabs = container.NewAppTabs(
 		container.NewTabItem(i18n.T("tab.dashboard"), a.newDashboard()),
-		container.NewTabItem(i18n.T("tab.scan"), a.newScannerView()),
-		container.NewTabItem(i18n.T("tab.confirm"), a.newConfirmView()),
+		container.NewTabItem(i18n.T("tab.scan"), scanView),
 		container.NewTabItem(i18n.T("tab.history"), a.newHistoryView()),
 		container.NewTabItem(i18n.T("tab.settings"), a.newSettingsView()),
 	)
 	a.window.SetContent(a.tabs)
+
+	a.scannerPage.refreshData()
 
 	if selectedIdx > 0 {
 		a.tabs.SelectIndex(selectedIdx)

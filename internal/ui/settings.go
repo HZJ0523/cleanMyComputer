@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/hzj0523/cleanMyComputer/internal/models"
 	"github.com/hzj0523/cleanMyComputer/pkg/i18n"
 )
 
@@ -21,20 +22,23 @@ var supportedLangs = []struct {
 }
 
 func (a *App) newSettingsView() fyne.CanvasObject {
+	var cachedRules []*models.CleanRule
+	reloadRules := func() {
+		cachedRules = a.state.GetAllRules()
+	}
+
 	ruleList := widget.NewList(
 		func() int {
-			rules := a.state.GetAllRules()
-			return len(rules)
+			return len(cachedRules)
 		},
 		func() fyne.CanvasObject {
 			return container.NewHBox(widget.NewCheck("", nil), widget.NewLabel(""))
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			rules := a.state.GetAllRules()
-			if id >= len(rules) {
+			if id >= len(cachedRules) {
 				return
 			}
-			rule := rules[id]
+			rule := cachedRules[id]
 			hbox := obj.(*fyne.Container)
 			check := hbox.Objects[0].(*widget.Check)
 			label := hbox.Objects[1].(*widget.Label)
@@ -42,8 +46,6 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 			ruleID := rule.ID
 			ruleEnabled := rule.Enabled
 
-			// Set OnChanged BEFORE SetChecked to avoid triggering
-			// a spurious save when Fyne recycles the widget
 			check.OnChanged = func(checked bool) {
 				if err := a.state.SetRuleEnabled(ruleID, checked); err != nil {
 					dialog.ShowError(err, a.window)
@@ -85,13 +87,6 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 
 	langLabel := widget.NewLabel(i18n.T("label.language"))
 
-	retentionEntry := widget.NewEntry()
-	retentionEntry.SetPlaceHolder("24")
-	if val, err := a.state.GetConfig("quarantine_retention_hours"); err == nil && val != "" {
-		retentionEntry.SetText(val)
-	}
-	retentionLabel := widget.NewLabel(i18n.T("label.quarantine_retention"))
-
 	autoCleanCheck := widget.NewCheck(i18n.T("label.auto_clean_enable"), nil)
 	if val, err := a.state.GetConfig("auto_clean_enabled"); err == nil && val == "true" {
 		autoCleanCheck.SetChecked(true)
@@ -118,13 +113,6 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 				return
 			}
 			i18n.Init(langCode)
-		}
-
-		if retentionEntry.Text != "" {
-			if err := a.state.SetConfig("quarantine_retention_hours", retentionEntry.Text); err != nil {
-				dialog.ShowError(err, a.window)
-				return
-			}
 		}
 
 		autoEnabled := "false"
@@ -160,14 +148,16 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 	})
 
 	refreshBtn := widget.NewButton(i18n.T("btn.refresh_rules"), func() {
+		reloadRules()
 		ruleList.Refresh()
 	})
+
+	reloadRules()
 
 	return container.NewBorder(
 		container.NewVBox(
 			widget.NewLabelWithStyle(i18n.T("label.settings"), fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
 			container.NewHBox(langLabel, langSelect),
-			container.NewHBox(retentionLabel, retentionEntry),
 			widget.NewSeparator(),
 			container.NewHBox(autoCleanCheck, intervalLabel, intervalEntry),
 			saveBtn,

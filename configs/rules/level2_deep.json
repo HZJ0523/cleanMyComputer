@@ -20,6 +20,54 @@
     "enabled": true
   },
   {
+    "id": "windows_upgrade_remnants",
+    "name": "Windows 升级残留文件",
+    "category": "system",
+    "level": 2,
+    "description": "清理系统升级后的残留文件夹",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\$Windows.~BT",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "C:\\$Windows.~WS",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 40,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "delivery_optimization",
+    "name": "传递优化缓存",
+    "category": "system",
+    "level": 2,
+    "description": "清理 Windows 传递优化下载缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\SoftwareDistribution\\DeliveryOptimization",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 20,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
     "id": "font_cache",
     "name": "字体缓存",
     "category": "system",
@@ -49,9 +97,9 @@
       {
         "type": "folder",
         "path": "%LOCALAPPDATA%\\Packages",
-        "pattern": "*\\LocalCache",
+        "pattern": "LocalCache",
         "recursive": true,
-        "max_depth": 3,
+        "max_depth": 2,
         "exclude_list": []
       }
     ],
@@ -128,6 +176,86 @@
     "enabled": false
   },
   {
+    "id": "dev_cache_maven",
+    "name": "Maven 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 Maven 包管理器缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\.m2\\repository",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "dev_cache_yarn",
+    "name": "Yarn 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 Yarn 包管理器缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Yarn\\Cache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "dev_cache_go",
+    "name": "Go 模块缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 Go 模块下载缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\go\\pkg\\mod",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
+    "id": "dev_cache_gradle",
+    "name": "Gradle 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 Gradle 构建缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\.gradle\\caches",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
+  },
+  {
     "id": "downloads_old",
     "name": "下载文件夹旧文件",
     "category": "user",
@@ -141,7 +269,7 @@
         "recursive": true,
         "max_depth": 2,
         "exclude_list": ["*.crdownload", "*.part"],
-      "days_old": 30
+        "days_old": 30
       }
     ],
     "risk_score": 45,

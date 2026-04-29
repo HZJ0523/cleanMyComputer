@@ -13,37 +13,9 @@
         "recursive": true,
         "max_depth": 3,
         "exclude_list": []
-      },
-      {
-        "type": "folder",
-        "path": "C:\\Windows\\System32\\winevt\\Logs",
-        "pattern": "*.evtx",
-        "recursive": false,
-        "max_depth": 0,
-        "exclude_list": []
       }
     ],
     "risk_score": 70,
-    "requires_admin": true,
-    "enabled": false
-  },
-  {
-    "id": "old_drivers",
-    "name": "旧驱动程序",
-    "category": "system",
-    "level": 3,
-    "description": "清理旧的驱动程序备份",
-    "targets": [
-      {
-        "type": "folder",
-        "path": "C:\\Windows\\System32\\DriverStore\\FileRepository",
-        "pattern": "*",
-        "recursive": true,
-        "max_depth": 2,
-        "exclude_list": ["*.inf", "*.cat", "*.sys"]
-      }
-    ],
-    "risk_score": 75,
     "requires_admin": true,
     "enabled": false
   },
@@ -52,12 +24,12 @@
     "name": "休眠文件",
     "category": "system",
     "level": 3,
-    "description": "清理休眠文件 hiberfil.sys（如果不使用休眠功能）",
+    "description": "关闭休眠功能以删除 hiberfil.sys",
     "targets": [
       {
-        "type": "folder",
-        "path": "C:\\",
-        "pattern": "hiberfil.sys",
+        "type": "command",
+        "path": "powercfg /hibernate off",
+        "pattern": "",
         "recursive": false,
         "max_depth": 0,
         "exclude_list": []
@@ -72,27 +44,11 @@
     "name": "node_modules 目录",
     "category": "dev",
     "level": 3,
-    "description": "扫描项目中的 node_modules 目录",
+    "description": "扫描用户目录中的 node_modules 目录",
     "targets": [
       {
         "type": "folder",
-        "path": "%USERPROFILE%\\projects",
-        "pattern": "node_modules",
-        "recursive": true,
-        "max_depth": 5,
-        "exclude_list": []
-      },
-      {
-        "type": "folder",
-        "path": "%USERPROFILE%\\Desktop",
-        "pattern": "node_modules",
-        "recursive": true,
-        "max_depth": 5,
-        "exclude_list": []
-      },
-      {
-        "type": "folder",
-        "path": "%USERPROFILE%\\Documents",
+        "path": "%USERPROFILE%",
         "pattern": "node_modules",
         "recursive": true,
         "max_depth": 5,
@@ -108,11 +64,11 @@
     "name": "构建输出目录",
     "category": "dev",
     "level": 3,
-    "description": "扫描项目中的 build/dist 输出目录",
+    "description": "扫描用户目录中的 build/dist 输出目录",
     "targets": [
       {
         "type": "folder",
-        "path": "%USERPROFILE%\\projects",
+        "path": "%USERPROFILE%",
         "pattern": "build",
         "recursive": true,
         "max_depth": 4,
@@ -120,7 +76,7 @@
       },
       {
         "type": "folder",
-        "path": "%USERPROFILE%\\projects",
+        "path": "%USERPROFILE%",
         "pattern": "dist",
         "recursive": true,
         "max_depth": 4,

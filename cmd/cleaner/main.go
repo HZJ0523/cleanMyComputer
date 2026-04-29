@@ -22,5 +22,6 @@ func main() {
 	}
 
 	app := ui.NewApp()
+	defer logger.Close()
 	app.Run()
 }

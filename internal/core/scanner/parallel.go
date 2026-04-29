@@ -18,7 +18,7 @@ func NewParallelScanner(workers int) *ParallelScanner {
 	}
 	return &ParallelScanner{
 		workers: workers,
-		scanner: NewScanner(workers),
+		scanner: NewScanner(),
 	}
 }
 

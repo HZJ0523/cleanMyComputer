@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 )
 
 var allowedCommands = map[string][]string{
-	"Clear-RecycleBin": {"powershell", "-Command", "Clear-RecycleBin -Force"},
+	"Clear-RecycleBin":        {"powershell", "-Command", "Clear-RecycleBin -Force"},
+	"docker system prune -f":  {"cmd", "/C", "docker system prune -f"},
+	"powercfg /hibernate off": {"powercfg", "/hibernate", "off"},
+	"ipconfig /flushdns":      {"cmd", "/C", "ipconfig", "/flushdns"},
 }
 
-type Executor struct {
-	dryRun bool
-}
+type Executor struct{}
 
 type CleanTask struct {
-	Files     []*FileItem
-	TotalSize int64
+	Files []*FileItem
 }
 
 type FileItem struct {
@@ -38,7 +37,7 @@ type CleanResult struct {
 }
 
 func NewExecutor() *Executor {
-	return &Executor{dryRun: false}
+	return &Executor{}
 }
 
 func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, error) {
@@ -61,11 +60,11 @@ func (e *Executor) Execute(ctx context.Context, task *CleanTask) (*CleanResult, 
 }
 
 func (e *Executor) cleanFile(ctx context.Context, file *FileItem) error {
-	if e.dryRun {
-		return nil
-	}
 	if file.Type == "command" {
 		return e.executeCommand(ctx, file.Path)
+	}
+	if file.Type == "directory" {
+		return os.RemoveAll(file.Path)
 	}
 	return e.deleteWithRetry(file.Path)
 }
@@ -73,6 +72,7 @@ func (e *Executor) cleanFile(ctx context.Context, file *FileItem) error {
 const maxRetries = 2
 
 func (e *Executor) deleteWithRetry(path string) error {
+	var lastErr error
 	for i := 0; i < maxRetries; i++ {
 		err := os.Remove(path)
 		if err == nil {
@@ -81,9 +81,10 @@ func (e *Executor) deleteWithRetry(path string) error {
 		if os.IsNotExist(err) || os.IsPermission(err) {
 			return err
 		}
+		lastErr = err
 		time.Sleep(100 * time.Millisecond)
 	}
-	return os.Remove(path)
+	return lastErr
 }
 
 func (e *Executor) executeCommand(ctx context.Context, cmd string) error {
@@ -92,8 +93,4 @@ func (e *Executor) executeCommand(ctx context.Context, cmd string) error {
 		return fmt.Errorf("unrecognized command: %q", cmd)
 	}
 	return exec.CommandContext(ctx, args[0], args[1:]...).Run()
-}
-
-func IsCommandTarget(path string) bool {
-	return !strings.Contains(path, "\\") && !strings.Contains(path, "/")
 }

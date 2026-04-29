@@ -18,7 +18,7 @@ func TestFullCleanWorkflow(t *testing.T) {
 
 	ctx := context.Background()
 
-	s := scanner.NewScanner(2)
+	s := scanner.NewScanner()
 	targets := []models.Target{
 		{Type: "folder", Path: tmpDir, Pattern: "*.txt", Recursive: false},
 	}

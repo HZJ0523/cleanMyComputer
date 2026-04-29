@@ -2,22 +2,17 @@ package models
 
 import (
 	"errors"
-	"time"
 )
 
 // CleanRule 定义清理规则
 type CleanRule struct {
-	ID            string    `json:"id"`
-	Name          string    `json:"name"`
-	Category      string    `json:"category"`
-	Level         int       `json:"level"`
-	Description   string    `json:"description"`
-	Targets       []Target  `json:"targets"`
-	RiskScore     int       `json:"risk_score"`
-	RequiresAdmin bool      `json:"requires_admin"`
-	Enabled       bool      `json:"enabled"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Level       int      `json:"level"`
+	Description string   `json:"description"`
+	Targets     []Target `json:"targets"`
+	RiskScore   int      `json:"risk_score"`
+	Enabled     bool     `json:"enabled"`
 }
 
 // Target 定义清理目标

@@ -2,6 +2,7 @@ package windows
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -84,7 +85,10 @@ func (w *WindowsPlatform) GetDiskUsage(path string) (*DiskUsage, error) {
 	root := filepath.VolumeName(path) + "\\"
 	kernel32 := windows.NewLazyDLL("kernel32.dll")
 	getDiskFreeSpaceEx := kernel32.NewProc("GetDiskFreeSpaceExW")
-	rootPtr, _ := windows.UTF16PtrFromString(root)
+	rootPtr, err := windows.UTF16PtrFromString(root)
+	if err != nil {
+		return nil, fmt.Errorf("invalid root path %q: %w", root, err)
+	}
 
 	ret, _, _ := getDiskFreeSpaceEx.Call(
 		uintptr(unsafe.Pointer(rootPtr)),

@@ -152,6 +152,12 @@ func (o *Orchestrator) ClearScanItems() {
 	o.mu.Unlock()
 }
 
+func (o *Orchestrator) SetScanItemsForClean(items []*models.ScanItem) {
+	o.mu.Lock()
+	o.ScanItems = items
+	o.mu.Unlock()
+}
+
 func (o *Orchestrator) GetScanItemCount() int {
 	o.mu.Lock()
 	defer o.mu.Unlock()
@@ -222,6 +228,7 @@ func (o *Orchestrator) RunScan(level int) error {
 func (o *Orchestrator) RunClean() (CleanSummary, error) {
 	o.mu.Lock()
 	items := o.ScanItems
+	level := o.scanLevel
 	o.mu.Unlock()
 
 	if len(items) == 0 {
@@ -254,12 +261,12 @@ func (o *Orchestrator) RunClean() (CleanSummary, error) {
 		Duration:  time.Since(startTime),
 	}
 
-	o.SaveCleanHistory(summary)
+	o.SaveCleanHistory(summary, level)
 	o.ClearScanItems()
 	return summary, nil
 }
 
-func (o *Orchestrator) SaveCleanHistory(result CleanSummary) {
+func (o *Orchestrator) SaveCleanHistory(result CleanSummary, scanLevel int) {
 	if o.history == nil {
 		return
 	}
@@ -267,7 +274,7 @@ func (o *Orchestrator) SaveCleanHistory(result CleanSummary) {
 	record := &models.CleanRecord{
 		StartTime:   now.Add(-result.Duration),
 		EndTime:     now,
-		ScanLevel:   o.scanLevel,
+		ScanLevel:   scanLevel,
 		TotalFiles:  result.Cleaned + result.Failed,
 		TotalSize:   result.FreedSize,
 		FreedSize:   result.FreedSize,

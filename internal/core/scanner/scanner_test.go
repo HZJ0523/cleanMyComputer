@@ -9,12 +9,91 @@ import (
 	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
 
+func TestScanner_ScanRule_DirectoryPattern(t *testing.T) {
+	tmpDir := t.TempDir()
+	nodeModules := filepath.Join(tmpDir, "project", "node_modules")
+	os.MkdirAll(nodeModules, 0755)
+	os.WriteFile(filepath.Join(nodeModules, "a.js"), []byte("code"), 0644)
+	os.WriteFile(filepath.Join(nodeModules, "b.js"), []byte("code"), 0644)
+
+	otherDir := filepath.Join(tmpDir, "project", "src")
+	os.MkdirAll(otherDir, 0755)
+	os.WriteFile(filepath.Join(otherDir, "main.js"), []byte("main"), 0644)
+
+	rule := &models.CleanRule{
+		ID: "test_dir_pattern",
+		Targets: []models.Target{
+			{
+				Type:      "folder",
+				Path:      tmpDir,
+				Pattern:   "node_modules",
+				Recursive: true,
+				MaxDepth:  5,
+			},
+		},
+	}
+
+	scanner := NewScanner()
+	ctx := context.Background()
+	results, err := scanner.ScanRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("ScanRule() error = %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result (node_modules dir), got %d", len(results))
+	}
+
+	item := results[0]
+	if item.Type != "directory" {
+		t.Errorf("Expected Type='directory', got '%s'", item.Type)
+	}
+	if item.Size != 8 {
+		t.Errorf("Expected Size=8 (a.js=4 + b.js=4), got %d", item.Size)
+	}
+	if filepath.Base(item.Path) != "node_modules" {
+		t.Errorf("Expected path base 'node_modules', got '%s'", filepath.Base(item.Path))
+	}
+}
+
+func TestScanner_ScanRule_DirectoryPatternExcluded(t *testing.T) {
+	tmpDir := t.TempDir()
+	buildDir := filepath.Join(tmpDir, "myapp", "build")
+	os.MkdirAll(buildDir, 0755)
+	os.WriteFile(filepath.Join(buildDir, "out.js"), []byte("out"), 0644)
+
+	rule := &models.CleanRule{
+		ID: "test_dir_exclude",
+		Targets: []models.Target{
+			{
+				Type:        "folder",
+				Path:        tmpDir,
+				Pattern:     "build",
+				Recursive:   true,
+				MaxDepth:    5,
+				ExcludeList: []string{"build"},
+			},
+		},
+	}
+
+	scanner := NewScanner()
+	ctx := context.Background()
+	results, err := scanner.ScanRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("ScanRule() error = %v", err)
+	}
+
+	if len(results) != 0 {
+		t.Errorf("Expected 0 results (excluded), got %d", len(results))
+	}
+}
+
 func TestScanner_ScanTargets(t *testing.T) {
 	tmpDir := t.TempDir()
 	testFile := filepath.Join(tmpDir, "test.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
 
-	scanner := NewScanner(2)
+	scanner := NewScanner()
 	targets := []models.Target{
 		{
 			Type:      "folder",
@@ -56,7 +135,7 @@ func TestScanner_ScanRule_Recursive(t *testing.T) {
 		},
 	}
 
-	scanner := NewScanner(2)
+	scanner := NewScanner()
 	ctx := context.Background()
 	results, err := scanner.ScanRule(ctx, rule)
 	if err != nil {
@@ -95,7 +174,7 @@ func TestScanner_ScanRule_EnvExpand(t *testing.T) {
 		},
 	}
 
-	scanner := NewScanner(2)
+	scanner := NewScanner()
 	ctx := context.Background()
 	results, err := scanner.ScanRule(ctx, rule)
 	if err != nil {
@@ -125,7 +204,7 @@ func TestScanner_ScanRule_ExcludeFilter(t *testing.T) {
 		},
 	}
 
-	scanner := NewScanner(2)
+	scanner := NewScanner()
 	ctx := context.Background()
 	results, err := scanner.ScanRule(ctx, rule)
 	if err != nil {

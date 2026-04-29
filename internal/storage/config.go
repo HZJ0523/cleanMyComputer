@@ -3,8 +3,6 @@ package storage
 import (
 	"database/sql"
 	"errors"
-
-	"github.com/hzj0523/cleanMyComputer/internal/models"
 )
 
 var ErrNotFound = errors.New("config key not found")
@@ -32,40 +30,4 @@ func (c *Config) Set(key, value string) error {
 		ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = CURRENT_TIMESTAMP
 	`, key, value, value)
 	return err
-}
-
-func (c *Config) GetConfig() *models.Config {
-	cfg := &models.Config{
-		OldFileDays: 30,
-		ScanWorkers: 4,
-		Language:    "zh-CN",
-	}
-	if v, err := c.Get("auto_clean_enabled"); err == nil && v == "true" {
-		cfg.AutoCleanEnabled = true
-	}
-	if v, err := c.Get("old_file_days"); err == nil && v != "" {
-		if n, e := parseInt(v); e == nil && n > 0 {
-			cfg.OldFileDays = n
-		}
-	}
-	if v, err := c.Get("scan_workers"); err == nil && v != "" {
-		if n, e := parseInt(v); e == nil && n > 0 {
-			cfg.ScanWorkers = n
-		}
-	}
-	if v, err := c.Get("language"); err == nil && v != "" {
-		cfg.Language = v
-	}
-	return cfg
-}
-
-func parseInt(s string) (int, error) {
-	var n int
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return 0, errors.New("invalid")
-		}
-		n = n*10 + int(c-'0')
-	}
-	return n, nil
 }

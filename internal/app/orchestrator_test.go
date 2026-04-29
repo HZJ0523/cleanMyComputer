@@ -119,7 +119,7 @@ func TestSaveCleanHistoryWithoutDB(t *testing.T) {
 		Cleaned:   5,
 		Failed:    0,
 		FreedSize: 1024,
-	})
+	}, 1)
 }
 
 func TestFindDuplicateFiles(t *testing.T) {

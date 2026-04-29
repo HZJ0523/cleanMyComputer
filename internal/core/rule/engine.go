@@ -10,9 +10,11 @@ import (
 )
 
 type Engine struct {
-	rules  map[string]*models.CleanRule
-	mu     sync.RWMutex
-	loader *Loader
+	rules       map[string]*models.CleanRule
+	mu          sync.RWMutex
+	loader      *Loader
+	loaded      bool
+	loadedLevel int
 }
 
 func NewEngine(loader *Loader) *Engine {
@@ -23,6 +25,13 @@ func NewEngine(loader *Loader) *Engine {
 }
 
 func (e *Engine) LoadRules(ctx context.Context, level int) error {
+	e.mu.RLock()
+	if e.loaded && e.loadedLevel >= level {
+		e.mu.RUnlock()
+		return nil
+	}
+	e.mu.RUnlock()
+
 	rules, err := e.loader.LoadByLevel(level)
 	if err != nil {
 		return err
@@ -43,9 +52,15 @@ func (e *Engine) LoadRules(ctx context.Context, level int) error {
 	}
 
 	e.mu.Lock()
+	if e.loaded && e.loadedLevel >= level {
+		e.mu.Unlock()
+		return nil
+	}
 	for _, rule := range valid {
 		e.rules[rule.ID] = rule
 	}
+	e.loaded = true
+	e.loadedLevel = level
 	e.mu.Unlock()
 	return nil
 }

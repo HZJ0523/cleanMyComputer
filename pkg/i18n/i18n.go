@@ -23,6 +23,11 @@ func Init(lang string) {
 }
 
 func load(lang string) {
+	// Clear stale keys from previous language
+	for k := range messages {
+		delete(messages, k)
+	}
+
 	// 1. Try embedded locale (always available)
 	if data, err := embeddedFS.ReadFile("embedded/" + lang + ".json"); err == nil {
 		var m map[string]string

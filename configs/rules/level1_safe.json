@@ -68,6 +68,86 @@
     "enabled": true
   },
   {
+    "id": "icon_cache",
+    "name": "图标缓存",
+    "category": "system",
+    "level": 1,
+    "description": "清理 Windows 图标缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\Explorer",
+        "pattern": "iconcache*",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "prefetch",
+    "name": "预读取文件",
+    "category": "system",
+    "level": 1,
+    "description": "清理 Windows 预读取缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Prefetch",
+        "pattern": "*.pf",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 10,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "directx_shader_cache",
+    "name": "DirectX 着色器缓存",
+    "category": "system",
+    "level": 1,
+    "description": "清理 DirectX 着色器缓存文件（自动重建）",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\D3DSCache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "crash_dumps_user",
+    "name": "用户崩溃转储",
+    "category": "system",
+    "level": 1,
+    "description": "清理用户模式崩溃转储文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\CrashDumps",
+        "pattern": "*.dmp",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 10,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
     "id": "windows_update_cache",
     "name": "Windows 更新缓存",
     "category": "system",
@@ -144,18 +224,18 @@
     "targets": [
       {
         "type": "folder",
-        "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default\\Cache",
-        "pattern": "*",
+        "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data",
+        "pattern": "Cache",
         "recursive": true,
-        "max_depth": 3,
+        "max_depth": 2,
         "exclude_list": []
       },
       {
         "type": "folder",
-        "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data\\Default\\Cache",
-        "pattern": "*",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data",
+        "pattern": "Cache",
         "recursive": true,
-        "max_depth": 3,
+        "max_depth": 2,
         "exclude_list": []
       },
       {
@@ -164,6 +244,46 @@
         "pattern": "cache2",
         "recursive": true,
         "max_depth": 2,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 15,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "dns_cache",
+    "name": "DNS缓存",
+    "category": "system",
+    "level": 1,
+    "description": "刷新 DNS 解析缓存",
+    "targets": [
+      {
+        "type": "command",
+        "path": "ipconfig /flushdns",
+        "pattern": "",
+        "recursive": false,
+        "max_depth": 0,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 5,
+    "requires_admin": false,
+    "enabled": true
+  },
+  {
+    "id": "ie_cache",
+    "name": "IE兼容缓存",
+    "category": "browser",
+    "level": 1,
+    "description": "清理 IE/Edge 兼容模式缓存文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\INetCache",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
         "exclude_list": []
       }
     ],

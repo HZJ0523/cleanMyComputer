@@ -4,8 +4,6 @@ import (
 	"github.com/hzj0523/cleanMyComputer/internal/app"
 )
 
-type CleanResult = app.CleanSummary
-
 type AppState struct {
 	*app.Orchestrator
 }

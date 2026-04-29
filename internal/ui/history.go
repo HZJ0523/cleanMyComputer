@@ -17,23 +17,20 @@ import (
 )
 
 func (a *App) newHistoryView() fyne.CanvasObject {
+	var cachedRecords []*models.CleanRecord
+
 	historyList := widget.NewList(
 		func() int {
-			records, _ := a.state.GetHistory()
-			if records == nil {
-				return 0
-			}
-			return len(records)
+			return len(cachedRecords)
 		},
 		func() fyne.CanvasObject {
 			return container.NewVBox(widget.NewLabel(""), widget.NewLabel(""))
 		},
 		func(id widget.ListItemID, obj fyne.CanvasObject) {
-			records, _ := a.state.GetHistory()
-			if id >= len(records) {
+			if id >= len(cachedRecords) {
 				return
 			}
-			r := records[id]
+			r := cachedRecords[id]
 			vbox := obj.(*fyne.Container)
 			line1 := vbox.Objects[0].(*widget.Label)
 			line2 := vbox.Objects[1].(*widget.Label)
@@ -47,8 +44,20 @@ func (a *App) newHistoryView() fyne.CanvasObject {
 		},
 	)
 
-	refreshBtn := widget.NewButton(i18n.T("btn.refresh"), func() {
+	reloadHistory := func() {
+		records, _ := a.state.GetHistory()
+		if records == nil {
+			cachedRecords = nil
+		} else {
+			cachedRecords = records
+		}
 		historyList.Refresh()
+	}
+
+	reloadHistory()
+
+	refreshBtn := widget.NewButton(i18n.T("btn.refresh"), func() {
+		reloadHistory()
 	})
 
 	exportBtn := widget.NewButton(i18n.T("btn.export_report"), func() {

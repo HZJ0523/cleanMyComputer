@@ -47,12 +47,14 @@ func (a *App) newDashboard() fyne.CanvasObject {
 				statusLabel.SetText(fmt.Sprintf("%s, %d", i18n.T("label.scan_complete"), count))
 				dialog.ShowInformation(i18n.T("label.scan_complete"),
 					fmt.Sprintf("%d items", count), a.window)
+				a.scannerPage.refreshData()
 				a.selectTab(1)
 			})
 		}()
 	}
 
 	quickScan := widget.NewButton(i18n.T("btn.quick_scan"), func() { doScan(1) })
+	deepScan := widget.NewButton(i18n.T("btn.deep_scan"), func() { doScan(2) })
 	fullScan := widget.NewButton(i18n.T("btn.full_scan"), func() { doScan(3) })
 
 	return container.NewVBox(
@@ -60,6 +62,6 @@ func (a *App) newDashboard() fyne.CanvasObject {
 		diskLabel,
 		statusLabel,
 		progressBar,
-		container.NewHBox(quickScan, fullScan),
+		container.NewHBox(quickScan, deepScan, fullScan),
 	)
 }

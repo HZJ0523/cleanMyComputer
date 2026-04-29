@@ -25,7 +25,7 @@ func TestOrchestratorScanAndCleanHistory(t *testing.T) {
 		FreedSize: 1024 * 1024,
 		Duration:  5 * time.Second,
 	}
-	o.SaveCleanHistory(summary)
+	o.SaveCleanHistory(summary, 1)
 
 	records, err := o.GetHistory()
 	if err != nil {
