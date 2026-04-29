@@ -119,9 +119,9 @@ func (p *scannerPage) buildUI() fyne.CanvasObject {
 	}
 
 	selectAllBtn := widget.NewButton(i18n.T("btn.select_all"), func() {
-		for _, row := range p.rows {
-			if row.kind == rowItem && row.item != nil {
-				p.checked[row.item.Path] = true
+		for _, item := range p.allItems {
+			if p.matchesFilter(item) {
+				p.checked[item.Path] = true
 			}
 		}
 		p.resultList.Refresh()

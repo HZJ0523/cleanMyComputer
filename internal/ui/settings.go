@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -25,6 +26,9 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 	var cachedRules []*models.CleanRule
 	reloadRules := func() {
 		cachedRules = a.state.GetAllRules()
+		sort.Slice(cachedRules, func(i, j int) bool {
+			return cachedRules[i].RiskScore < cachedRules[j].RiskScore
+		})
 	}
 
 	ruleList := widget.NewList(
@@ -152,6 +156,22 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 		ruleList.Refresh()
 	})
 
+	ruleSelectAllBtn := widget.NewButton(i18n.T("btn.select_all"), func() {
+		for _, r := range cachedRules {
+			a.state.SetRuleEnabled(r.ID, true)
+		}
+		reloadRules()
+		ruleList.Refresh()
+	})
+
+	ruleDeselectAllBtn := widget.NewButton(i18n.T("btn.deselect_all"), func() {
+		for _, r := range cachedRules {
+			a.state.SetRuleEnabled(r.ID, false)
+		}
+		reloadRules()
+		ruleList.Refresh()
+	})
+
 	reloadRules()
 
 	return container.NewBorder(
@@ -163,7 +183,7 @@ func (a *App) newSettingsView() fyne.CanvasObject {
 			saveBtn,
 			widget.NewSeparator(),
 			widget.NewLabel(i18n.T("label.rule_toggle")),
-			refreshBtn,
+			container.NewHBox(refreshBtn, ruleSelectAllBtn, ruleDeselectAllBtn),
 		),
 		nil, nil, nil,
 		ruleList,
