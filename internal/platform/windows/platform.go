@@ -3,10 +3,7 @@ package windows
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -16,24 +13,6 @@ type WindowsPlatform struct{}
 
 func NewPlatform() *WindowsPlatform {
 	return &WindowsPlatform{}
-}
-
-func (w *WindowsPlatform) ExpandPath(path string) string {
-	result := os.ExpandEnv(path)
-	if strings.Contains(result, "%") {
-		for _, envVar := range []string{
-			"TEMP", "TMP", "APPDATA", "LOCALAPPDATA",
-			"USERPROFILE", "PROGRAMFILES", "PROGRAMFILES(X86)",
-			"SYSTEMROOT", "WINDIR", "HOMEDRIVE", "HOMEPATH",
-		} {
-			value := os.Getenv(envVar)
-			if value != "" {
-				result = strings.ReplaceAll(result, "%"+envVar+"%", value)
-				result = strings.ReplaceAll(result, "%"+strings.ToLower(envVar)+"%", value)
-			}
-		}
-	}
-	return filepath.Clean(result)
 }
 
 func (w *WindowsPlatform) IsAdmin() bool {
@@ -53,22 +32,6 @@ func (w *WindowsPlatform) IsAdmin() bool {
 	token := windows.Token(0)
 	member, err := token.IsMember(sid)
 	return err == nil && member
-}
-
-func (w *WindowsPlatform) ClearRecycleBin() error {
-	return exec.Command("powershell", "-Command", "Clear-RecycleBin -Force").Run()
-}
-
-func (w *WindowsPlatform) GetCommonPaths() map[string]string {
-	home, _ := os.UserHomeDir()
-	return map[string]string{
-		"HOME":         home,
-		"TEMP":         os.Getenv("TEMP"),
-		"APPDATA":      os.Getenv("APPDATA"),
-		"LOCALAPPDATA": os.Getenv("LOCALAPPDATA"),
-		"PROGRAMFILES": os.Getenv("ProgramFiles"),
-		"SYSTEMROOT":   os.Getenv("SystemRoot"),
-	}
 }
 
 type DiskUsage struct {

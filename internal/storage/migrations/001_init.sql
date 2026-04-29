@@ -13,22 +13,6 @@ CREATE TABLE IF NOT EXISTS clean_history (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS clean_details (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    history_id INTEGER NOT NULL,
-    file_path TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    rule_id TEXT NOT NULL,
-    risk_score INTEGER NOT NULL,
-    action TEXT NOT NULL,
-    error_message TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (history_id) REFERENCES clean_history(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_clean_details_history ON clean_details(history_id);
-CREATE INDEX IF NOT EXISTS idx_clean_details_rule ON clean_details(rule_id);
-
 CREATE TABLE IF NOT EXISTS user_config (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,

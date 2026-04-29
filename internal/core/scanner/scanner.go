@@ -247,30 +247,3 @@ func (s *Scanner) scanFolder(ctx context.Context, target *models.Target, ruleID 
 	return results, nil
 }
 
-func (s *Scanner) ScanTargets(ctx context.Context, targets []models.Target) ([]*models.ScanItem, error) {
-	var results []*models.ScanItem
-	for _, target := range targets {
-		expandedPath := expandPath(target.Path)
-		matches, err := filepath.Glob(filepath.Join(expandedPath, target.Pattern))
-		if err != nil {
-			continue
-		}
-		for _, match := range matches {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-			}
-			info, err := os.Stat(match)
-			if err != nil || info.IsDir() {
-				continue
-			}
-			results = append(results, &models.ScanItem{
-				Path:    match,
-				Size:    info.Size(),
-				ModTime: info.ModTime(),
-			})
-		}
-	}
-	return results, nil
-}

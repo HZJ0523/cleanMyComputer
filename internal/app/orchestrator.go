@@ -300,12 +300,3 @@ func (o *Orchestrator) GetHistory() ([]*models.CleanRecord, error) {
 	return o.history.GetAll()
 }
 
-func (o *Orchestrator) FindDuplicateFiles(root string) ([]analyzer.DuplicateGroup, error) {
-	finder := analyzer.NewDuplicateFinder(1024)
-	return finder.FindDuplicates(root)
-}
-
-func (o *Orchestrator) FindLargeFiles(root string, threshold int64) ([]analyzer.LargeFile, error) {
-	finder := analyzer.NewLargeFileFinder(threshold)
-	return finder.FindLargeFiles(root)
-}

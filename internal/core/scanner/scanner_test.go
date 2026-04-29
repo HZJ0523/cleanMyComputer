@@ -88,32 +88,6 @@ func TestScanner_ScanRule_DirectoryPatternExcluded(t *testing.T) {
 	}
 }
 
-func TestScanner_ScanTargets(t *testing.T) {
-	tmpDir := t.TempDir()
-	testFile := filepath.Join(tmpDir, "test.txt")
-	os.WriteFile(testFile, []byte("test"), 0644)
-
-	scanner := NewScanner()
-	targets := []models.Target{
-		{
-			Type:      "folder",
-			Path:      tmpDir,
-			Pattern:   "*.txt",
-			Recursive: false,
-		},
-	}
-
-	ctx := context.Background()
-	results, err := scanner.ScanTargets(ctx, targets)
-	if err != nil {
-		t.Fatalf("ScanTargets() error = %v", err)
-	}
-
-	if len(results) == 0 {
-		t.Error("Expected scan results")
-	}
-}
-
 func TestScanner_ScanRule_Recursive(t *testing.T) {
 	tmpDir := t.TempDir()
 	subDir := filepath.Join(tmpDir, "sub")

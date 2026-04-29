@@ -1,7 +1,6 @@
 package app
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -120,38 +119,4 @@ func TestSaveCleanHistoryWithoutDB(t *testing.T) {
 		Failed:    0,
 		FreedSize: 1024,
 	}, 1)
-}
-
-func TestFindDuplicateFiles(t *testing.T) {
-	o := NewOrchestrator()
-	tmpDir := t.TempDir()
-	content := make([]byte, 2048)
-	for i := range content {
-		content[i] = byte(i % 256)
-	}
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), content, 0644)
-	os.WriteFile(filepath.Join(tmpDir, "b.txt"), content, 0644)
-
-	groups, err := o.FindDuplicateFiles(tmpDir)
-	if err != nil {
-		t.Fatalf("FindDuplicateFiles: %v", err)
-	}
-	if len(groups) == 0 {
-		t.Error("expected at least one duplicate group")
-	}
-}
-
-func TestFindLargeFiles(t *testing.T) {
-	o := NewOrchestrator()
-	tmpDir := t.TempDir()
-	largeContent := make([]byte, 1024)
-	os.WriteFile(filepath.Join(tmpDir, "big.dat"), largeContent, 0644)
-
-	files, err := o.FindLargeFiles(tmpDir, 512)
-	if err != nil {
-		t.Fatalf("FindLargeFiles: %v", err)
-	}
-	if len(files) == 0 {
-		t.Error("expected at least one large file")
-	}
 }

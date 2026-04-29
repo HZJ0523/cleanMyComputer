@@ -19,13 +19,16 @@ func TestFullCleanWorkflow(t *testing.T) {
 	ctx := context.Background()
 
 	s := scanner.NewScanner()
-	targets := []models.Target{
-		{Type: "folder", Path: tmpDir, Pattern: "*.txt", Recursive: false},
+	rule := &models.CleanRule{
+		ID: "test_rule", Name: "test", Level: 1, RiskScore: 10, Enabled: true,
+		Targets: []models.Target{
+			{Type: "folder", Path: tmpDir, Pattern: "*.txt", Recursive: false},
+		},
 	}
 
-	results, err := s.ScanTargets(ctx, targets)
+	results, err := s.ScanRule(ctx, rule)
 	if err != nil {
-		t.Fatalf("ScanTargets() error = %v", err)
+		t.Fatalf("ScanRule() error = %v", err)
 	}
 
 	if len(results) == 0 {
