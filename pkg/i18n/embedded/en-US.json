@@ -11,7 +11,7 @@
   "btn.refresh": "Refresh",
   "btn.save": "Save Settings",
   "btn.export_report": "Export Report",
-  "btn.refresh_rules": "Refresh Rules",
+  "btn.refresh_rules": "Save Rule Config",
   "btn.select_all": "Select All",
   "btn.deselect_all": "Deselect All",
   "label.scanning": "Scanning...",

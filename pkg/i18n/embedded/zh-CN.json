@@ -11,7 +11,7 @@
   "btn.refresh": "刷新",
   "btn.save": "保存设置",
   "btn.export_report": "导出报告",
-  "btn.refresh_rules": "刷新规则列表",
+  "btn.refresh_rules": "保存规则配置",
   "btn.select_all": "全选",
   "btn.deselect_all": "取消全选",
   "label.scanning": "正在扫描...",
