@@ -131,5 +131,11 @@
   "rule.dns_cache.name": "DNS Cache",
   "rule.dns_cache.desc": "Flush DNS resolver cache",
   "rule.ie_cache.name": "IE Compatibility Cache",
-  "rule.ie_cache.desc": "Clean IE/Edge compatibility mode cache files"
+  "rule.ie_cache.desc": "Clean IE/Edge compatibility mode cache files",
+  "rule.windows_cbs_logs.name": "Windows CBS Logs",
+  "rule.windows_cbs_logs.desc": "Clean Windows Component-Based Servicing log files",
+  "rule.windows_panther_logs.name": "Windows Upgrade Logs",
+  "rule.windows_panther_logs.desc": "Clean Windows upgrade and installation log files",
+  "rule.dev_cache_nuget.name": "NuGet Cache",
+  "rule.dev_cache_nuget.desc": "Clean NuGet package manager cache"
 }

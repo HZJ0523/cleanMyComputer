@@ -131,5 +131,11 @@
   "rule.dns_cache.name": "DNS缓存",
   "rule.dns_cache.desc": "刷新 DNS 解析缓存",
   "rule.ie_cache.name": "IE兼容缓存",
-  "rule.ie_cache.desc": "清理 IE/Edge 兼容模式缓存文件"
+  "rule.ie_cache.desc": "清理 IE/Edge 兼容模式缓存文件",
+  "rule.windows_cbs_logs.name": "Windows CBS 日志",
+  "rule.windows_cbs_logs.desc": "清理 Windows 组件服务日志文件",
+  "rule.windows_panther_logs.name": "Windows 升级日志",
+  "rule.windows_panther_logs.desc": "清理 Windows 升级安装过程的日志文件",
+  "rule.dev_cache_nuget.name": "NuGet 缓存",
+  "rule.dev_cache_nuget.desc": "清理 NuGet 包管理器缓存"
 }

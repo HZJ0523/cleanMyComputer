@@ -323,5 +323,65 @@
     "risk_score": 50,
     "requires_admin": true,
     "enabled": false
+  },
+  {
+    "id": "windows_cbs_logs",
+    "name": "Windows CBS 日志",
+    "category": "system",
+    "level": 2,
+    "description": "清理 Windows 组件服务日志文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Logs\\CBS",
+        "pattern": "*.log",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 25,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "windows_panther_logs",
+    "name": "Windows 升级日志",
+    "category": "system",
+    "level": 2,
+    "description": "清理 Windows 升级安装过程的日志文件",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "C:\\Windows\\Panther",
+        "pattern": "*.log",
+        "recursive": true,
+        "max_depth": 2,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 25,
+    "requires_admin": true,
+    "enabled": true
+  },
+  {
+    "id": "dev_cache_nuget",
+    "name": "NuGet 缓存",
+    "category": "dev",
+    "level": 2,
+    "description": "清理 NuGet 包管理器缓存",
+    "targets": [
+      {
+        "type": "folder",
+        "path": "%USERPROFILE%\\.nuget\\packages",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 5,
+        "exclude_list": []
+      }
+    ],
+    "risk_score": 35,
+    "requires_admin": false,
+    "enabled": false
   }
 ]

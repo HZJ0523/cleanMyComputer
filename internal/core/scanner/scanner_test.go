@@ -192,3 +192,114 @@ func TestScanner_ScanRule_ExcludeFilter(t *testing.T) {
 		}
 	}
 }
+
+func TestScanner_ScanRule_BrowserCacheWildcard(t *testing.T) {
+	tmpDir := t.TempDir()
+	userDataDir := filepath.Join(tmpDir, "User Data")
+	profileDir := filepath.Join(userDataDir, "Default")
+	os.MkdirAll(profileDir, 0755)
+
+	cacheDirs := []string{"Cache", "Code Cache", "GPUCache", "ShaderCache"}
+	for _, name := range cacheDirs {
+		dir := filepath.Join(profileDir, name)
+		os.MkdirAll(dir, 0755)
+		os.WriteFile(filepath.Join(dir, "data.bin"), []byte("cached"), 0644)
+	}
+
+	rule := &models.CleanRule{
+		ID: "browser_cache_test",
+		Targets: []models.Target{
+			{
+				Type:      "folder",
+				Path:      userDataDir,
+				Pattern:   "*Cache",
+				Recursive: true,
+				MaxDepth:  3,
+			},
+		},
+	}
+
+	scanner := NewScanner()
+	ctx := context.Background()
+	results, err := scanner.ScanRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("ScanRule() error = %v", err)
+	}
+
+	if len(results) != 4 {
+		var names []string
+		for _, r := range results {
+			names = append(names, filepath.Base(r.Path))
+		}
+		t.Fatalf("Expected 4 cache dirs (Cache, Code Cache, GPUCache, ShaderCache), got %d: %v", len(results), names)
+	}
+
+	for _, item := range results {
+		if item.Type != "directory" {
+			t.Errorf("Expected directory type, got '%s' for %s", item.Type, item.Path)
+		}
+		if item.Size != 6 {
+			t.Errorf("Expected size 6 for %s, got %d", item.Path, item.Size)
+		}
+	}
+}
+
+func TestScanner_ScanRule_MultipleTargets(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir1 := filepath.Join(tmpDir, "WER-System")
+	dir2 := filepath.Join(tmpDir, "WER-User")
+	os.MkdirAll(dir1, 0755)
+	os.MkdirAll(dir2, 0755)
+	os.WriteFile(filepath.Join(dir1, "report.wer"), []byte("sys-report"), 0644)
+	os.WriteFile(filepath.Join(dir2, "report.wer"), []byte("user-report"), 0644)
+
+	os.Setenv("TEST_WER_USER", dir2)
+	defer os.Unsetenv("TEST_WER_USER")
+
+	rule := &models.CleanRule{
+		ID: "error_reports_test",
+		Targets: []models.Target{
+			{Type: "folder", Path: dir1, Pattern: "*", Recursive: true, MaxDepth: 3},
+			{Type: "folder", Path: "%TEST_WER_USER%", Pattern: "*", Recursive: true, MaxDepth: 3},
+		},
+	}
+
+	scanner := NewScanner()
+	ctx := context.Background()
+	results, err := scanner.ScanRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("ScanRule() error = %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 results (system + user WER), got %d", len(results))
+	}
+}
+
+func TestScanner_ScanRule_LogPattern(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.WriteFile(filepath.Join(tmpDir, "CBS.log"), []byte("log-content"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "CBS.persist"), []byte("persist-data"), 0644)
+	os.WriteFile(filepath.Join(tmpDir, "other.dat"), []byte("other"), 0644)
+
+	rule := &models.CleanRule{
+		ID: "cbs_logs_test",
+		Targets: []models.Target{
+			{Type: "folder", Path: tmpDir, Pattern: "*.log", Recursive: false},
+		},
+	}
+
+	scanner := NewScanner()
+	ctx := context.Background()
+	results, err := scanner.ScanRule(ctx, rule)
+	if err != nil {
+		t.Fatalf("ScanRule() error = %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result (*.log only), got %d", len(results))
+	}
+	if filepath.Base(results[0].Path) != "CBS.log" {
+		t.Errorf("Expected CBS.log, got %s", results[0].Path)
+	}
+}

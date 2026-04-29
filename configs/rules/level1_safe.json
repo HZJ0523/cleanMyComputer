@@ -181,6 +181,14 @@
         "recursive": true,
         "max_depth": 3,
         "exclude_list": []
+      },
+      {
+        "type": "folder",
+        "path": "%LOCALAPPDATA%\\Microsoft\\Windows\\WER",
+        "pattern": "*",
+        "recursive": true,
+        "max_depth": 3,
+        "exclude_list": []
       }
     ],
     "risk_score": 10,
@@ -225,17 +233,17 @@
       {
         "type": "folder",
         "path": "%LOCALAPPDATA%\\Google\\Chrome\\User Data",
-        "pattern": "Cache",
+        "pattern": "*Cache",
         "recursive": true,
-        "max_depth": 2,
+        "max_depth": 3,
         "exclude_list": []
       },
       {
         "type": "folder",
         "path": "%LOCALAPPDATA%\\Microsoft\\Edge\\User Data",
-        "pattern": "Cache",
+        "pattern": "*Cache",
         "recursive": true,
-        "max_depth": 2,
+        "max_depth": 3,
         "exclude_list": []
       },
       {
